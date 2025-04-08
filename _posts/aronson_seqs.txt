@@ -1,0 +1,8 @@
+#[8,14] self-referring
+t is the fourteenth, eighth letter
+#false for fast verifier. Why? Forward-referring...
+t is the eighth, eighteenth letter
+
+
+ 
+t is the tenth letter
