@@ -120,3 +120,6 @@ kramdown:
 
 repository: ikavodo/ikavodo.github.io
 future: true
+
+exclude:
+  - vendor/
