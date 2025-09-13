@@ -33,7 +33,7 @@ I’ve also taken the liberty of naming some of these photos and, in some cases,
 ## Color study
 ![Color Study Cropped](/assets/film_roll/color study cropped.jpg)  
 
-## Duck in the park 
+## Duck (creature) 
 ![Creature](/assets/film_roll/creature.jpg)  
 
 
@@ -41,7 +41,7 @@ I’ve also taken the liberty of naming some of these photos and, in some cases,
 ![Evil Spirit](/assets/film_roll/evil spirit.jpg)  
 
 
-## Tunnel Sign
+## A way out
 ![Exit Sign](/assets/film_roll/exit sign.jpg)  
 
 
@@ -77,11 +77,11 @@ I’ve also taken the liberty of naming some of these photos and, in some cases,
 ## Shiri (living-room)
 ![Shiri Portrait .jpg](/assets/film_roll/shiri portrait .jpg)  
 
-## Sunglasses
+## Untitled
 ![Sunglasses](/assets/film_roll/sunglasses.jpg)  
 
 
-## Tree in the blinds
+## Untitled
 ![Tree Blinds](/assets/film_roll/tree blinds.jpg)  
 
 ## Tupac returns
