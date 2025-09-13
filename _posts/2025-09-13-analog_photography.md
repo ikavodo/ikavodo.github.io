@@ -1,5 +1,5 @@
 ---
-title: "Analog photography: first developed roll of film"
+title: "Analog photography"
 layout: post
 date: 2025-9-10 14:15
 image: 
