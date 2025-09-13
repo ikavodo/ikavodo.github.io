@@ -1,5 +1,5 @@
 ---
-title: "Computer Vision Notes"
+title: "Motion model analysis"
 layout: post
 date: 2025-9-10 14:15
 image: 
@@ -45,20 +45,20 @@ f(x,y,t) = (W_0 + t W_1)\phi(x,y), \quad
 \phi(x,y) = \begin{bmatrix}1 \\ x \\ y \end{bmatrix},
 $$  
 
-where \(W_0, W_1 \in \mathbb{R}^{2 \times 3}\).  
+where $W_0, W_1 \in \mathbb{R}^{2 \times 3}$.  
 
 </div>
 
-- \(W_0\): base affine transform (at \(t=0\))  
-- \(W_1\): linear time drift (change rate of transform)  
+- $W_0$: base affine transform (at $t=0$)  
+- $W_1$: linear time drift (change rate of transform)  
 
 ---
 
 ### **2. DSP Interpretation**
 
 - This is a **linear time-varying (LTV) operator** acting on a 2D spatial signal across time.  
-- At each fixed \(t\), \(f\) is a standard affine warp: rotation, scale, shear, translation.  
-- Across \(t\), the parameters evolve **linearly** (first-order modulation).  
+- At each fixed $t$, $f$ is a standard affine warp: rotation, scale, shear, translation.  
+- Across $t$, the parameters evolve **linearly** (first-order modulation).  
 
 From a DSP perspective:  
 - The system is **not LTI** → no single frequency response.  
@@ -68,13 +68,13 @@ From a DSP perspective:
 
 ### **3. Frequency-Domain Effects**
 
-For an image \(I\) with Fourier transform \(\hat I(\omega)\), affine warp gives:
+For an image $I$ with Fourier transform $\hat I(\omega)$, affine warp gives:
 
 <div>
 
 $$
 \mathcal{F}\{I(A(t)\mathbf{u}+b(t))\}(\omega) = 
-\frac{1}{|\det A(t)|} e^{-j \omega^\top A(t)^{-1} b(t)} 
+\frac{1}{\|\det A(t)\|} e^{-j \omega^\top A(t)^{-1} b(t)} 
 \hat I(A(t)^{-T}\omega).
 $$
 
@@ -89,7 +89,7 @@ $$
 
 ### **4. Motion Planes in 3D Spectrum**
 
-For pure translation \(b(t)=vt\), the 3D Fourier transform of the video lies on **motion planes**:
+For pure translation $b(t)=vt$, the 3D Fourier transform of the video lies on **motion planes**:
 
 <div>
 
@@ -107,7 +107,7 @@ $$
 ### **5. Implementation as DSP Operations**
 
 - **Resampling**: Warping = nonuniform sampling → requires interpolation.  
-- **Anti-aliasing**: Apply pre-lowpass when \(|\det A(t)|<1\).  
+- **Anti-aliasing**: Apply pre-lowpass when $\|\det A(t)\|<1$.  
 - **Interpolation kernels**: bilinear (fast), bicubic/B-spline (balanced), sinc (ideal).  
 - **Shear decomposition**: Affine = composition of 3 shears → implementable with 1D fractional-delay filters.  
 
@@ -118,10 +118,6 @@ $$
 - **Phase correlation** (FFT-based): translation.  
 - **Fourier–Mellin**: rotation + scale.  
 - **Lucas–Kanade (gradient-based)**: local affine parameters, solved via least squares.  
-- **Kalman filtering**: smooth temporal evolution of \((W_0, W_1)\).  
+- **Kalman filtering**: smooth temporal evolution of $(W_0, W_1)$.  
 
 This is analogous to **carrier phase synchronization** in communications: maximizing alignment of warped frames is a **coherent integration** problem.  
-
----
-
-### **7. Practical Considerati**
