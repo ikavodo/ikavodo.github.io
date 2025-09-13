@@ -46,7 +46,7 @@ I’ve also taken the liberty of naming some of these photos and, in some cases,
 
 
 ## Glass windows
-![Glass Church](/assets/film_roll/glass church.jpg)  
+![Glass Church](/assets/film_roll/glass church vertical.jpg)  
 
 ## Herz Jesu church
 ![Herz Jesu](/assets/film_roll/herz jesu.jpg)  
