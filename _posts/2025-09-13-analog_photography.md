@@ -82,7 +82,7 @@ I’ve also taken the liberty of naming some of these photos and, in some cases,
 
 
 ## Untitled
-![Tree Blinds](/assets/film_roll/tree blinds.jpg)  
+![Tree Blinds](/assets/film_roll/tree blinds vertical.jpg)  
 
 ## Tupac returns
 ![Tupac](/assets/film_roll/tupac.jpg)  
