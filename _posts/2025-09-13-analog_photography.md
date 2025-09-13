@@ -41,7 +41,7 @@ I’ve also taken the liberty of naming some of these photos and, in some cases,
 ![Evil Spirit](/assets/film_roll/evil spirit.jpg)  
 
 
-## A way out
+## Untitled
 ![Exit Sign](/assets/film_roll/exit sign.jpg)  
 
 
