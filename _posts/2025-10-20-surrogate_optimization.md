@@ -1,7 +1,7 @@
 ---
 title: "Using Surrogate Objectives for Optimization in the Fourier Domain"
 layout: post
-date: 2025-9-10 14:15
+date: 2025-10-20 16:34
 image: 
 headerImage: false
 tags:
