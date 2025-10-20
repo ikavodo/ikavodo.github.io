@@ -29,8 +29,8 @@ We consider a **time-varying affine transformation**:
 $$
 f(x,y,t) = 
 \begin{bmatrix}
-\theta_{k1} + \alpha_{k1}t + (\theta_{k2} + \alpha_{k2}t)x + (\theta_{k3} + \alpha_{k3}t)y \\
-\theta_{k4} + \alpha_{k4}t + (\theta_{k5} + \alpha_{k5}t)x + (\theta_{k6} + \alpha_{k6}t)y
+(\theta_{k1} + \alpha_{k1}t)x + (\theta_{k2} + \alpha_{k2}t)y + \theta_{k3} + \alpha_{k3}t \\
+ (\theta_{k4} + \alpha_{k4}t)x + (\theta_{k5} + \alpha_{k5}t)y + \theta_{k6} + \alpha_{k6}t
 \end{bmatrix}.
 $$
 
@@ -42,15 +42,24 @@ In compact matrix form:
 
 $$
 f(x,y,t) = (W_0 + t W_1)\phi(x,y), \quad 
-\phi(x,y) = \begin{bmatrix}1 \\ x \\ y \end{bmatrix},
+\phi(x,y) = \begin{bmatrix}x \\ y \\ 1 \end{bmatrix},
 $$  
 
+<<<<<<< HEAD
 where $W_0, W_1 \in \mathbb{R}^{2 \times 3}$.  
 
 </div>
 
 - $W_0$: base affine transform (at $t=0$)  
 - $W_1$: linear time drift (change rate of transform)  
+=======
+where $(W_0, W_1 \in \mathbb{R}^{2 \times 3}$).  
+
+</div>
+
+- $(W_0$): base affine transform at $t=0$  
+- $(W_1$): linear time drift (change rate of transform)  
+>>>>>>> efdadcf (new blog post)
 
 ---
 
@@ -121,3 +130,63 @@ $$
 - **Kalman filtering**: smooth temporal evolution of $(W_0, W_1)$.  
 
 This is analogous to **carrier phase synchronization** in communications: maximizing alignment of warped frames is a **coherent integration** problem.  
+<<<<<<< HEAD
+=======
+
+---
+
+### **7. Practical Considerations**
+
+- Ensure **invertibility**: enforce $\det A(t)\neq 0$.  
+- Normalize intensity when area changes $\|\det A\|$ to avoid photometric distortions.  
+- Handle occlusion with **robust losses** or **weighted integration**.  
+- Use **multiresolution pyramids** to stabilize optimization.  
+
+### 8.Parameter Estimation as Demodulation
+
+In motion estimation, we want to recover transformation parameters (translation, rotation, scale, shear, etc.) that best align frames or images. This is analogous to demodulation in communication systems, where you try to recover carrier phase, frequency, and timing shifts.
+
+1. Phase Correlation (FFT-based → Translation)
+
+Uses the Fourier shift theorem:
+If an image is translated, its Fourier spectrum differs only by a phase factor.
+
+Cross-power spectrum between two images reveals a peak at the displacement.
+
+This is like detecting the carrier phase offset in a sinusoidal signal.
+
+2. Fourier–Mellin (Rotation + Scale)
+
+Log-polar mapping in frequency space turns rotation and scale into translation problems.
+
+After this transform, you can apply phase correlation again.
+
+This is equivalent to estimating both frequency offset and timing drift in communications.
+
+3. Lucas–Kanade (Gradient-based Affine)
+
+Assumes small motion → linearizes image warp.
+
+Sets up equations relating image gradients to parameter updates.
+
+Solves via least squares → gives local affine motion estimates.
+
+This resembles iterative phase-locked loops (PLLs) adjusting phase/frequency until error is minimized.
+
+4. Kalman Filtering (Temporal Smoothing of Parameters)
+
+Motion parameters evolve smoothly over time, not randomly.
+
+A Kalman filter imposes a dynamic model (e.g., linear drift in $W_0, W_1$).
+
+Helps suppress noise, just like carrier tracking loops smooth rapid variations in phase/frequency.
+---
+
+## **References & Resources**  
+1. Zadeh, LTV Systems Theory  
+2. Bergen & Adelson, Motion Energy Models  
+3. Simoncelli et al., Spatiotemporal Gabor Filtering  
+4. Classic Fourier–Mellin Transform papers  
+
+---
+>>>>>>> efdadcf (new blog post)
