@@ -13,7 +13,9 @@ author: Ido Akov
 description: "Computer vision notes"
 ---
 
-# **Computer Vision Notes (Aalto)**  
+These are some processed notes of mine from a Computer Vision course I took at Aalto University in 2023.
+
+# **Computer Vision Notes**  
 
 ---
 

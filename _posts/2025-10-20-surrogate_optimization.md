@@ -1,32 +1,21 @@
----
-title: "Using Surrogate Objectives for Optimization in the Fourier Domain"
-layout: post
-date: 2025-10-20 16:34
-image: 
-headerImage: false
-tags:
-  - Computer Science
-  - Math
-  - DSP
-star: true
-category: blog
-author: Ido Akov
-description: "Motion model analysis"
----
+
+## Image registration and Fourier-based methods
+Now I mentioned that the Fourier Transform would somehow come into this story, so I need to live up to my point. For that- let's take a look at a subproblem of ours, that is accounting for motion computation between only a single *pair* of images. In this case our parametric motion model boils down to a *single* geometric transformation between images is a problem which has already been accounted for in a myriad of different fieldings. This problem, which boils down to *aligning coordinate systems of different images* is called **image registration**, and comes into account in a vast array of fields, ranging from medical imagery to satellite views, underwater sonar signals, etc...  
+Up to approximately twenty years ago, many of the methods for image-registration had to do with Fourier-based methods, and more specifically a certain property of the Fourier transform known as the shift   
+
 
 ## **Motivation**
 I’m currently working on expanding an optimization pipeline over **2D parametric motion (translation)** to **more general motion models** such as **Affine 6DoF**.
 
-In Fourier-based approaches, **4DoF motion estimation** (translation + rotation + scale) is well-known through algorithms like the **Fourier–Mellin Transform** (see [.  
+In Fourier-based approaches, **4DoF motion estimation** (translation + rotation + scale) is well-known through algorithms like the **Fourier–Mellin Transform** (see [the following](https://sthoduka.github.io/imreg_fmt/docs/log-polar-transform/)).  
 Since my existing spatial-domain objective — based on **variance of the integrated image from multiple shifted frames** — is entirely linear, I sought to translate it into the **Fourier domain**.
 
 However, I encountered a problem:  
 > The Fourier-domain objective is **non-convex**, and its gradients do not correspond directly to those of the spatial-domain version.
 
-That led me to this paper:
-
-> **“Sinusoidal Frequency Estimation by Gradient Descent”**, IEEE 2023  
-> [https://ieeexplore.ieee.org/stamp/stamp.jsp?arnumber=10095188](https://ieeexplore.ieee.org/stamp/stamp.jsp?arnumber=10095188)
+That led me to the paper:
+  
+> [**“Sinusoidal Frequency Estimation by Gradient Descent”**, IEEE 2023](https://ieeexplore.ieee.org/stamp/stamp.jsp?arnumber=10095188&tag=1)
 
 It proposes a **surrogate formulation** that allows stable optimization of oscillatory Fourier objectives using **Wirtinger derivatives**.
 
@@ -35,7 +24,7 @@ I decided to test whether I could apply this idea to my own Fourier objective.
 ---
 
 ## **Formulation**
-To simplify analysis, I reduced the problem to **1D** with a simple analytical function — a **Heaviside (rectangular) pulse** — and a single translation parameter **\(\tau\)**.
+To simplify analysis, I reduced the problem to **1D** with a simple analytical function — a **Heaviside (rectangular) pulse** — and a single translation parameter **$\tau$**.
 
 This setting lets us understand the structure of the optimization landscape analytically and visually before extending to the full 2D image case.
 
@@ -46,20 +35,20 @@ This setting lets us understand the structure of the optimization landscape anal
 ### 1️⃣ Integration
 Our spatial integration operation is:
 
-\[
-I(\tau) = \frac{1}{N}\sum_{n=0}^{N-1}x(t - n\tau)
-\]
 
-This can be viewed as a **generalized convolution**: convolution of \(x(t)\) with a comb-like kernel
+$I(\tau) = \frac{1}{N}\sum_{n=0}^{N-1}x(t - n\tau)$
 
-\[
-h(t) = \frac{1}{N}\sum_{n=0}^{N-1}\delta(t - n\tau)
-\]
 
-so that \(I(\tau) = (x * h)(t)\).
+This can be viewed as a **generalized convolution**: convolution of $x(t)$ with a comb-like kernel
 
-➡️ For integer \(\tau=1\), this operation becomes a discrete convolution of the signal with itself.  
-If \(x\) is a **rectangular pulse** of width \(W\) and \(N=W\), then \(I(t)\) is a **triangular function** — the self-convolution of \(x\).
+
+$h(t) = \frac{1}{N}\sum_{n=0}^{N-1}\delta(t - n\tau)$
+
+
+so that $$I(\tau) = (x * h)(t)$$.
+
+➡️ For integer $$\tau=1$$, this operation becomes a discrete convolution of the signal with itself.  
+If $$x\)$ is a **rectangular pulse** of width $\(W\)$ and $\(N=W\)$, then $\(I(t)\)$ is a **triangular function** — the self-convolution of $\(x$$.
 
 ```python
 # Example: integration via torch.roll
@@ -83,7 +72,7 @@ Taking the Fourier transform of the geometric sum gives:
 \]
 
 This is the **Dirichlet kernel**, a comb filter that selectively amplifies frequencies coherent with the shift lattice.  
-Thus, the Fourier-domain integration acts as **banded filtering** on \(X(\omega)\).
+Thus, the Fourier-domain integration acts as **banded filtering** on $X(\omega)$.
 
 ---
 
@@ -95,7 +84,7 @@ Variance of the integrated image is equivalent to its **power spectral density m
 \]
 
 This gives intuitive insight:  
-- The **maximum variance** occurs at **zero shift (\(\tau = 0\))**,  
+- The **maximum variance** occurs at **zero shift ($\tau = 0$)**,  
 - Larger shifts correspond to **comb-filtered spectra** where destructive interference reduces total power.
 
 ---
@@ -146,7 +135,7 @@ The surrogate is defined as:
 \[
 s_n(z_k) = \Re(z_k^n)
 \]
-where \(z_k = e^{j\omega_k}\).
+where $z_k = e^{j\omega_k}$.
 
 This can be interpreted as the **real part of an exponentially decaying sinusoid** —  
 a differentiable approximation to a pure sinusoidal phase shift.
@@ -154,14 +143,14 @@ a differentiable approximation to a pure sinusoidal phase shift.
 ---
 
 ### **Wirtinger Derivatives (optional derivation)**
-For a function \(f:\mathbb{C}\rightarrow \mathbb{R}\):
+For a function $f:\mathbb{C}\rightarrow \mathbb{R}$:
 
 \[
 \frac{\partial f}{\partial z} = \frac{1}{2}\left(\frac{\partial f}{\partial x} - j\frac{\partial f}{\partial y}\right), \quad
 \frac{\partial f}{\partial \bar{z}} = \frac{1}{2}\left(\frac{\partial f}{\partial x} + j\frac{\partial f}{\partial y}\right)
 \]
 
-This basis change from \((x,y)\) to \((z,\bar{z})\) allows us to **treat \(z\) and \(\bar{z}\) as independent variables**, enabling gradient-based optimization over complex-valued functions that aren’t holomorphic.
+This basis change from $(x,y)\) to \((z,\bar{z})\) allows us to **treat \(z\) and \(\bar{z}$ as independent variables**, enabling gradient-based optimization over complex-valued functions that aren’t holomorphic.
 
 ---
 
@@ -172,7 +161,7 @@ We decompose the geometric sum as:
 F(z) = \frac{1 - z^N}{1 - z} = F_{\text{re}}(z)\,F_{\text{im}}(z)
 \]
 
-and derive analytic gradients for both \(F_{\text{re}}\) and \(F_{\text{im}}\) using Wirtinger calculus.
+and derive analytic gradients for both $F_{\text{re}}\) and \(F_{\text{im}}$ using Wirtinger calculus.
 
 For the **weighted case**, we include:
 
@@ -217,7 +206,7 @@ results_weighted = [opt_analytic_weighted.optimize(tau0=s, steps=200, alpha=0.5)
 ```
 
 **Observation:**  
-With weighting, the geometric decay stabilizes the gradient field, producing smooth, monotonic convergence to the correct translation parameter \(\tau = 0\).
+With weighting, the geometric decay stabilizes the gradient field, producing smooth, monotonic convergence to the correct translation parameter $\tau = 0$.
 
 ---
 
@@ -255,5 +244,5 @@ This framework generalizes naturally to **2D motion** (translations), and potent
 
 📄 **Next steps:**
 - Extend to 2D Fourier motion fields.
-- Replace \(\tau\) with affine parameters.
+- Replace $\tau$ with affine parameters.
 - Explore differentiable implementation of the surrogate kernel in PyTorch for real-time motion optimization.

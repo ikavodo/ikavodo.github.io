@@ -15,6 +15,7 @@ description: "1D deocclusion"
 
 # **1-D deocclusion formulation**
 
+This is a 1D binary formulation of the problem of de-occlusion, namely given an object in motion and an occluder, how we can separate the two.
 Let $N$ be the frame width. We observe a sequence of binary frames of length $T$.  We wish to recover three unknowns:
 
 * **Object mask** $O \in \{0,1\}^N$
