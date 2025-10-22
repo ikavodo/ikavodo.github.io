@@ -13,9 +13,10 @@ author: Ido Akov
 description: "1D deocclusion"
 ---
 
+This is a 1D binary formulation of the problem of de-occlusion, namely given a time-wise shifted vector (representing the object in motion) and a static masking vector (representing the occluder), we want to separate and identify the two.
+
 # **1-D deocclusion formulation**
 
-This is a 1D binary formulation of the problem of de-occlusion, namely given an object in motion and an occluder, how we can separate the two.
 Let $N$ be the frame width. We observe a sequence of binary frames of length $T$.  We wish to recover three unknowns:
 
 * **Object mask** $O \in \{0,1\}^N$
@@ -133,5 +134,6 @@ if __name__ == "__main__":
 
 > M: [1 1 1 0 0 0 1 1]
 
+Note that we have successfully "deoccluded" the scene because we can now represent the unoccluded scene by simply recreating the scene using the known initial offset and shift direction.
 
 **Generalization**: replace $a \pm t$ by any known shift function $h(t)\in\mathbb Z$.  Any binary masks $O$ and $M$ are allowed; the only requirement is that over some frames each object bit must be visible at least once.

@@ -45,7 +45,7 @@ See this example for a synthetic 6DoF affine motion video featuring a moving soc
 An effective algorithm for motion computation in occluded videos has been thought up by my PhD supervisor. So far it works well for computing 1D-horizontal (very simple) motion, as well as reconstructing hidden moving objects in heavily-occluded videos. Unfortunately, the algorithm as it is doesn't work so well in the *higher-dimensional* parametric motion model case. Here then is the algorithm (soon to be published in a paper)
 
 **Inputs:**
-- Video frames $ I_0, I_1, \dots, I_{T-1} $, where $ I_j $ is an image of dimensions $HxW$
+- Video frames $ I_0, I_1, \dots, I_{T-1} $, where $ I_{0<=j<=T-1} $ is an image of dimensions $HxW$
 
 **Output:**
 - Optimal motion parameters $ \theta^\star $
@@ -70,20 +70,20 @@ For each timestep $t = 0, \dots, T-1$:
 
 <div>
 $$
-\overline{I_t} = W_t(I_t, \theta)
+\overline{I_t} = W^t(I_t, \theta)
 $$
 </div>
 
-2) The composite warp $W_t$ is defined as a composition of $t$ successive warps:
+2) The composite warp $W^t$ is defined as a composition of $t$ successive warps:
 
 <div>
 $$
-W_t(I_t, \theta) =
+W^t(I_t, \theta) =
 \underbrace{W \circ W \circ \cdots \circ W}_{t \text{ times}}(I_t, \theta)
 $$
 </div>
 
-3) Note: Depending on the motion model, the composition $W_t$ can often be simplified analytically (e.g., when motion transformations form a group).
+Note: Depending on the motion model, the composition $W^t$ can often be simplified analytically (e.g., when motion transformations form a group).
 
 #### Step 3 — Integrate Warped Frames
 Integrate the warped frames into a single averaged image:
@@ -114,19 +114,20 @@ f_{\text{obj}}(I_0,\dots,I_{T-1})
 =
 \arg\max_{\theta}\;
 \mathrm{Var}\!\left(
-\frac{1}{T}\sum_{t=0}^{T-1} W_t(I_t,\theta)
+\frac{1}{T}\sum_{t=0}^{T-1} W^t(I_t,\theta)
 \right)
 $$
 </div>
 
 Solve for $\theta^\star$ using a numerical optimization method (e.g., gradient ascent/descent), with backpropagation through the warp operator $W_t$, updating $\theta$ at each iteration.
 
+Note: Looking at this final formulation of our objective we notice that if we can model the warping operator $W^t$ as multiplication by some complex $z^t$ (hint: what if $z=e^(-j*\omega)$ is a complex exponential?), we will be able to represent this objective in a an analytical, closed form via a finite geometric sum. More on this in the next blog post, when we move everything to the Fourier domain.  
 
 #### Intuition
 The ground-truth motion parameters $\theta^\star$ should yield an integrated image $\overline{I}$ with $maximal$ variance (meaning maximum image contrast). The reason why this algorithm works well in the case of fragmented occlusion is because occlusion is in essence "smoothed" out by the integration procedure, thus leaving only a sharp image of the object in motion, notwithstanding certain assumptions about object visibility across all frames, static occluders, etc... In the next blog-post we will go more into depth with this algorithm, gaining *another interpretation* of our objective, namely the variance of the integrated image, through the Fourier Transform and the equivalent operator in the Fourier-domain.
 
 #### Toy example (bonus)
-Suppose our image is of a white square centered within an unoccluded black background, and we choose a 2D translation motion model $\theta=[\tau_x, \tau_y]$, where at each step we shift the square towards the top-left corner (non-zero negative values for both $\tau_x, \tau_y$). Compare then the integrated image with shift parameters $\theta=[0, 0]$ to that obtained with the ground truth shift parameters $\theta^\star$
+Suppose our image is of a white square centered within an unoccluded black background, and we choose a 2D translation motion model $\theta=[\tau_x, \tau_y]$, where at each step we shift the square towards the top-left corner (non-zero negative values for both $\tau_x, \tau_y$). Compare then the integrated image with shift parameters $\theta=[0, 0]$ to that obtained with the ground truth shift parameters $\theta^\star$. Which of the two images will yield larger variance, and why?
 
 ![Optim](/assets/images/comparison_integ.png)  
 
