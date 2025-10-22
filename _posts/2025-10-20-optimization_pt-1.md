@@ -79,11 +79,11 @@ $$
 <div>
 $$
 W^t(I_t, \theta) =
-\underbrace{W \circ W \circ \cdots \circ W}_{t \text{ times}}(I_t, \theta)
+(\underbrace{W \circ W \circ \cdots \circ W}_{t \text{ times}})(I_t, \theta)
 $$
 </div>
 
-Note: Depending on the motion model, the composition $W^t$ can often be simplified analytically (e.g., when motion transformations form a group).
+**Note**: Depending on the motion model, the composition $W^t$ can often be simplified analytically (e.g., when motion transformations form a group). Think of applying a shift using parameters $\theta=[\tau_x, \tau_y]$ n times being equivalent to a single shift with parameters $\theta_n=[n \tau_x, n \tau_y]$.
 
 #### Step 3 — Integrate Warped Frames
 Integrate the warped frames into a single averaged image:
@@ -121,7 +121,7 @@ $$
 
 Solve for $\theta^\star$ using a numerical optimization method (e.g., gradient ascent/descent), with backpropagation through the warp operator $W_t$, updating $\theta$ at each iteration.
 
-Note: Looking at this final formulation of our objective we notice that if we can model the warping operator $W^t$ as multiplication by some complex $z^t$ (hint: what if $z=e^(-j*\omega)$ is a complex exponential?), we will be able to represent this objective in a an analytical, closed form via a finite geometric sum. More on this in the next blog post, when we move everything to the Fourier domain.  
+**Second note**: Looking at this final formulation we notice that the summation over warping operators $W^t$ looks a lot like a finite geometric series. If we could somehow model this operator as multiplication by a complex exponential $z^t$ (*hint*: what is the interpretation of multiplication by $z=e^{-j \omega}$ in the Fourier domain?), we will be able to represent the optimization objective in a closed, analytical form, which will make life much easier. More on this in the next blog post.  
 
 #### Intuition
 The ground-truth motion parameters $\theta^\star$ should yield an integrated image $\overline{I}$ with $maximal$ variance (meaning maximum image contrast). The reason why this algorithm works well in the case of fragmented occlusion is because occlusion is in essence "smoothed" out by the integration procedure, thus leaving only a sharp image of the object in motion, notwithstanding certain assumptions about object visibility across all frames, static occluders, etc... In the next blog-post we will go more into depth with this algorithm, gaining *another interpretation* of our objective, namely the variance of the integrated image, through the Fourier Transform and the equivalent operator in the Fourier-domain.
