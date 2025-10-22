@@ -94,34 +94,36 @@ $$
 $$
 </div>
 
-#### Step 4 — Compute Variance
-Compute the variance of the integrated image:
+#### Step 4 — Optimization objective
+Define the optimization objective as the variance over the integrated image $\overline{I}$:
 
 <div>
 $$
-f_{\text{obj}}(I_0,\dots,I_{T-1}) = \mathrm{Var}(\overline{I})
-$$
-</div>
-
-#### Step 5 — Optimize Motion Parameters
-Define the optimization objective:
-
-<div>
-$$
-\theta^\star =
-\arg\max_{\theta}\;
-f_{\text{obj}}(I_0,\dots,I_{T-1})
+f_{\text{obj}}(I_0,\dots,I_{T-1}, \theta)
 =
-\arg\max_{\theta}\;
+\mathrm{Var}\!\left(
+\overline{I}
+\right)
+=
 \mathrm{Var}\!\left(
 \frac{1}{T}\sum_{t=0}^{T-1} W^t(I_t,\theta)
 \right)
 $$
 </div>
 
-Solve for $\theta^\star$ using a numerical optimization method (e.g., gradient ascent/descent), with backpropagation through the warp operator $W_t$, updating $\theta$ at each iteration.
 
-**Second note**: Looking at this final formulation we notice that the summation over warping operators $W^t$ looks a lot like a finite geometric series. If we could somehow model this operator as multiplication by a complex exponential $z^t$ (*hint*: what is the interpretation of multiplication by $z=e^{-j \omega}$ in the Fourier domain?), we will be able to represent the optimization objective in a closed, analytical form, which will make life much easier. More on this in the next blog post.  
+**Note**: If we could model the warp operator $W^t$ as multiplication by an exponential scalar $r^t$ (*hint*: what if $r \in \mathbb{C}$, or even $r=e^{-j \omega}$?), we could represent the summation term in a closed analytical form, thus making our life much easier (more on this in the next blog post). 
+
+#### Step 5 - Optimize over motion parameters
+Solve for 
+<div>
+    $$
+    \theta^\star =
+\arg\max_{\theta}\;
+f_{\text{obj}}(I_0,\dots,I_{T-1}, \theta)
+    $$
+</div>
+ using a numerical optimization method (e.g., gradient ascent/descent), with backpropagation through the warp operator $W$, updating $\theta$ at each iteration. 
 
 #### Intuition
 The ground-truth motion parameters $\theta^\star$ should yield an integrated image $\overline{I}$ with $maximal$ variance (meaning maximum image contrast). The reason why this algorithm works well in the case of fragmented occlusion is because occlusion is in essence "smoothed" out by the integration procedure, thus leaving only a sharp image of the object in motion, notwithstanding certain assumptions about object visibility across all frames, static occluders, etc... In the next blog-post we will go more into depth with this algorithm, gaining *another interpretation* of our objective, namely the variance of the integrated image, through the Fourier Transform and the equivalent operator in the Fourier-domain.
@@ -129,7 +131,9 @@ The ground-truth motion parameters $\theta^\star$ should yield an integrated ima
 ### Toy example 
 #### Integration
 Suppose our image is of a white square centered within an unoccluded black background, and we choose a 2D translation motion model $\theta=[\tau_x, \tau_y]$, where at each step we shift the square towards the top-left corner (non-zero negative values for both $\tau_x, \tau_y$). 
-Here's some code to generate such an image, as well as a motion video from the image and input shift parameters. Note the implementation is *differentiable*, namely uses only differentiable functions for which the gradient can be computed using Pytorch's native auto-differentiation engine. This is *crucial* for optimization to work
+Here's some code to generate such an image, as well as a motion video from the image and input shift parameters. 
+
+**Note**: the implementation is *differentiable*, namely uses only differentiable functions for which the gradient can be computed using Pytorch's native auto-differentiation engine. This is *crucial* for optimization to work.
 ``` python
 import torch
 import torch.nn.functional as F
@@ -182,12 +186,13 @@ def shift_motion_vids(motion_vid, shifts):
 
 def spatial_pipeline(motion_vid, shifts, dims = (-2, -1)):
     """
-    Whole pipeline in spatial domain: warp motion video frames, integrate warped frames, compute variance over integrated image
+    Whole pipeline in spatial domain: warp motion video frames, integrate warped frames, 
+    compute variance over integrated image
     """
     shifted = shift_motion_vid(motion_vid, shifts)
     integrated = shifted.mean(dim=1).unsqueeze(1)
     variance = integrated.var(dim=dims)
-    # Return all intermediate variables for assertions
+    # Return all intermediate variables
     return shifted, integrated, variance
 
 ```  
@@ -230,10 +235,10 @@ Which of the two images will yield larger variance, and why?
 We now show our optimization scheme in action, using our chosen image and shift parameters.
 
 ```python
-# estimated shifts should be within this distance from GT for successful optimization   
-SUCCESS_CRIT = 1/T
+# estimated shifts should be within this distance from GT for successful optimization, equivalent to 1 EPE (end-to-end point error)   
+SUCCESS_THRESH = 1/T
 
-def compute_motion(videos, max_steps=400, thresh=SUCCESS_CRIT, num_trials=T):
+def compute_motion(videos, max_steps=400, thresh=SUCCESS_THRESH, num_trials=T):
     """
     Compute motion via optimization over videos using spatial pipeline. 
     Keep track of convergence statistics for later.
@@ -276,7 +281,8 @@ def compute_motion(videos, max_steps=400, thresh=SUCCESS_CRIT, num_trials=T):
             all_shifts.append(current_shifts)
             deviations.append(deviation)
 
-            if deviation < thresh and step > 100:
+            if deviation < thresh:
+                # successfully converged to ground truth shifts
                 converged = True
                 break
 
@@ -296,6 +302,8 @@ def compute_motion(videos, max_steps=400, thresh=SUCCESS_CRIT, num_trials=T):
 
 compute_motion(motion_video)
 ```
->  Total successful convergences: 10/10
+```shell
+Total successful convergences: 5/5
+```
 
 That's it for now. **Until next time!**
