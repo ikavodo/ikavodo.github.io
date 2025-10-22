@@ -19,8 +19,8 @@ This first part will introduce a novel approach for computing motion in occluded
 
 First though, a little introduction.
 
-# Intro
-## Motion computation and fragmented occlusion
+## Intro
+### Motion computation and fragmented occlusion
 For those who don't know: I (not so) recently started a PhD in computer vision in Vienna, and was immediately thrown into a niche problem not many people are currently focusing on: that of estimating the motion of objects in *occluded* scenarios. While there are various types of occlusion out there, I am mainly focusing on *fragmented occlusion*, whereby occluders potentially create individually unrecognisable *fragments* of an object (think of this [Magritte painting](https://www.moma.org/audio/playlist/180/2378), had he chosen less recognisable body-parts). 
 
 For the case of motion computation under fragmented occlusion, think about describing this squirrel's movement (put some [death metal](https://www.youtube.com/watch?v=iKZ94I-oqgE&list=PLMUoA2MhTasdHBgTzqSInIzde4MqoQMOW&index=1) in the background instead of that annoying music). 
@@ -29,7 +29,7 @@ More specifically, within the first 10 seconds of this video, in approximately h
 
 While general algorithms for motion computation have been in existence since the 1980's, these algorithms are usually built on underlying assumptions which don't really hold in occluded scenarios (to understand why- read more about the [brightness constancy assumption](https://www.cs.cmu.edu/~16385/s17/Slides/14.1_Brightness_Constancy.pdf)). Thus, a *different* set of computational tools is necessary for computing motion in the occluded case. I'll try to briefly present these tools, and get on to the more interesting stuff.
 
-## Parametric motion models
+### Parametric motion models
 Working in the occluded case demands a *simplified* motion, i.e. we begin with a global *parametric-motion model* assumption over *all* pixels in the image instead of assuming that local neighborhoods move coherently, with smooth variation in motion across the entire image. This motion depends on an initial number of parameters, which are used at each time-step to successively warp some initial frame, thus creating a *motion video*. 
 
 The simplest such example is a *translation* model, equivalent to using one finger to move a widget across your mobile-phone desktop. Somewhat more elaborate motions can be modelled via rotation (3DoF = translation + rotation), similarity (4DoF: translation+rotation+scale), affine (6DoF- all previously mentioned + shear) motion models, and even projective (9DoF) where each of these transformations have different geometric *invariants*. for example: a *similarity* transformation preserves shape up to a scalar, whereas an affine motion model need not necessarily retain shape, but rather preserves parallel lines (a square may morph into a parallelogram), and the ratios of lengths of parallel line segments.
@@ -41,9 +41,9 @@ See this example for a synthetic 6DoF affine motion video featuring a moving soc
 </video>
 
 
-# Motion computation via an unsupervised-learning objective
+## Motion computation via an unsupervised-learning objective
 
-An effective algorithm for motion computation in occluded videos has been thought up by my PhD supervisor. So far it works well for computing 1D-horizontal (very simple) motion, as well as reconstructing hidden moving objects in heavily-occluded videos. Unfortunately, the algorithm as it is doesn't work so well in the *higher-dimensional* parametric motion model case. Here then is the algorithm (soon to be published in a paper)
+An effective algorithm for motion computation in occluded videos has already been thought up, developed and patented by my PhD supervisor *Dr. Roman Pflugfelder* (may he live long!). So far the algorithm works well for computing 1D-horizontal (very simple) motion, as well as reconstructing hidden moving objects in heavily-occluded videos, but doesn't work well in the *higher-dimensional* case. This algorithm is now briefly presented
 
 **Inputs:**
 - Video frames $ I_0, I_1, \dots, I_{T-1} $, where $ I_{0<=j<=T-1} $ is an image of dimensions $HxW$
@@ -52,7 +52,7 @@ An effective algorithm for motion computation in occluded videos has been though
 - Optimal motion parameters $ \theta^\star $
 
 
-## Step 1 — Initialize
+### Step 1 — Initialize
 Initialize motion parameters:
 
 <div>
@@ -64,7 +64,7 @@ $$
 for a $K$-dimensional parametric motion model.
 
 
-## Step 2 — Warp Frames
+### Step 2 — Warp Frames
 For each timestep $t = 0, \dots, T-1$:
 
 1) Warp the frame $I_t$ using the current motion parameters:
@@ -86,7 +86,7 @@ $$
 
 **Note**: Depending on the motion model, the composition $W^t$ can often be simplified analytically (e.g., when motion transformations form a group). Think of applying a shift using parameters $\theta=[\tau_x, \tau_y]$ n times being equivalent to a single shift with parameters $\theta_n=[n \tau_x, n \tau_y]$.
 
-## Step 3 — Integrate Warped Frames
+### Step 3 — Integrate Warped Frames
 Integrate the warped frames into a single averaged image:
 
 <div>
@@ -95,7 +95,7 @@ $$
 $$
 </div>
 
-## Step 4 — Optimization objective
+### Step 4 — Optimization objective
 Define the optimization objective as the variance over the integrated image $\overline{I}$:
 
 <div>
@@ -115,7 +115,7 @@ $$
 
 **Note**: If we could model the warp operator $W^t$ as multiplication by an exponential scalar $r^t$ (*hint*: what if $r \in \mathbb{C}$, or even $r=e^{-j \omega}$?), we could represent the summation term in a closed analytical form, thus making our life much easier (more on this in the next blog post). 
 
-## Step 5 - Optimize over motion parameters
+### Step 5 - Optimize over motion parameters
 Solve for 
 <div>
     $$
@@ -126,15 +126,15 @@ f_{\text{obj}}(I_0,\dots,I_{T-1}, \theta)
 </div>
  using a numerical optimization method (e.g., gradient ascent/descent), with backpropagation through the warp operator $W$, updating $\theta$ at each iteration. 
 
-## Algorithmic intuition
+###  Intuition
 The ground-truth motion parameters $\theta^\star$ should yield an integrated image $\overline{I}$ with $maximal$ variance (meaning maximum image contrast). The reason why this algorithm works well in the case of fragmented occlusion is because occlusion is in essence "smoothed" out by the integration procedure, thus leaving only a sharp image of the object in motion, notwithstanding certain assumptions about object visibility across all frames, static occluders, etc... In the next blog-post we will go more into depth with this algorithm, gaining *another interpretation* of our objective, namely the variance of the integrated image, through the Fourier Transform and the equivalent operator in the Fourier-domain.
 
-# Optimization in practice
+## Optimization in practice
 
 We will work with a simple toy example: computing the shifting motion of a white rectangle within an unoccluded black background.  
 Let's begin by getting some visual info as to how the different concepts look.
 
-## Integration
+### Integration
 Suppose our image is of a white square centered within an unoccluded black background, and we choose a 2D translation motion model $\theta=[\tau_x, \tau_y]$, where at each step we shift the square towards the top-left corner (non-zero negative values for both $\tau_x, \tau_y$). 
 Here's some code to generate such an image, as well as a motion video from the image and input shift parameters. 
 
@@ -235,7 +235,7 @@ _, integrated_gt, _ = spatial_pipeline(motion_video, T, theta_star)
 
 Which of the two images will yield larger variance, and why?
 
-## Optimization using pipeline
+### Optimization using pipeline
 
 We now show how to use our full pipeline for optimization over shift parameters, solving for motion.
 
