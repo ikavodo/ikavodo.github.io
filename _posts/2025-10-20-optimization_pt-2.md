@@ -99,9 +99,9 @@ $$
 
 Which looks simple enough already! Now what's left is to verify how we can explicitly write the operator $\mathcal{F} \lbrace W^t(I^t,\theta) \rbrace$.
 
-### Time-domain translation vs. phase-shift
+### Integrated image
 
-Recall the duality previously introduced in the [first]() blogpost.
+We begin by expressing the integrated image in terms of Fourier-domain operators. Recall the duality previously introduced in the [first]() blogpost.
 We had 
 <div>
 $$x[n-n_0]\overset{\text{FT}}{\leftrightarrow}e^{-j\omega n_o}X(e^{j\omega})$$,
@@ -122,7 +122,7 @@ with $\phi = \frac{\tau_x}{W}+\frac{\tau_y}{H}$ for an image I of dimensions $H 
  <div>
     $$
     \mathcal{F}\lbrace \overline{I} \rbrace \overset{\text{definition}} = 
-    \frac{1}{T}\sum_{t=0}^{T-1} \mathcal{F} \lbrace W^t(I_t,\theta) \rbrace = 
+    \frac{1}{T}\sum_{t=0}^{T-1} \mathcal{F} \lbrace W^t(I_t,\theta) \rbrace \overset{\text{shift theorem}}= 
     \frac{1}{T}\sum_{t=0}^{T-1} e^{-j\omega t\phi}*\mathcal{F} \lbrace I_t \rbrace \rbrace
     $$
  </div>
@@ -133,7 +133,7 @@ Now if we model
 $$I_t(x, y) = I(x + t\tau_x^*, y + t\tau_y^*)$$
 </div>
 
-for some ground truth motion vector $\tau^* = \begin{bmatrix} \tau_x^* \\ \tau_y^* \end{bmatrix}^T $, then as previously done we have
+for some ground truth motion vector $\tau^* = \begin{bmatrix} \tau_x^* \\ \tau_y^* \end{bmatrix}^T $, then continuing to simplify our previous expression we get
 <div>
 $$\mathcal{F} \lbrace W^t(I_t,\theta) \rbrace = e^{-j\omega t\phi}*\mathcal{F} \lbrace I_t \rbrace = 
 e^{-j\omega t\phi}*e^{j\omega t\phi^*}\mathcal{F} \lbrace I \rbrace = 
@@ -145,7 +145,19 @@ where $ \Delta\phi = \frac{\tau_x - \tau_x^* }{W} + \frac{\tau_y - \tau_y^* }{H}
 Next, if we plug this in to our Fourier-domain objective we finally obtain the following closed-form 
  <div>
     $$
-    \mathcal{F}\lbrace \overline{I} \rbrace \overset{\text{definition}} = 
-    \frac{1}{T}\sum_{t=0}^{T-1} e^{-j\omega t(\frac{    \tau_x}{W}+\frac{   \tau_y}{H})}*\mathcal{F} \lbrace I_t \rbrace \rbrace
+    \mathcal{F}\lbrace \overline{I} \rbrace = 
+    \frac{1}{T}\sum_{t=0}^{T-1} e^{-j\omega t\Delta\phi} *\mathcal{F} \lbrace I \rbrace = \frac{\mathcal{F} \lbrace I \rbrace}{T}\sum_{t=0}^{T-1} e^{-j\omega t\Delta\phi} \overset{\text{geo-sum}}= 
+    \mathcal{F} \lbrace I \rbrace*\frac{1-e^{-j\omega T\Delta\phi}}{T*(1-e^{-j\omega\Delta\phi})}
     $$
  </div>
+ **Whew**! What do we have here? It seems that we are multiplying the Fourier-representation of the original reference frame I by some scaled rational, complex function. To better understand the behavior of this function let's replace $z = e^{-j\omega\Delta\phi}$, thus obtaining the following transfer function
+ <div>
+    $$
+    H(z)=\frac{1−z^T}{1-z}
+    $$
+ </div> 
+ The object with this transfer function is known in DSP as a *T-point moving average filter*. We will get back to it in a bit, trying to understand its effects and characteristics.
+
+  
+
+
