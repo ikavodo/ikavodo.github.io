@@ -147,17 +147,17 @@ Next, if we plug this in to our Fourier-domain objective we finally obtain the f
     $$
     \mathcal{F}\lbrace \overline{I} \rbrace = 
     \frac{1}{T}\sum_{t=0}^{T-1} e^{-j\omega t\Delta\phi} *\mathcal{F} \lbrace I \rbrace = \frac{\mathcal{F} \lbrace I \rbrace}{T}\sum_{t=0}^{T-1} e^{-j\omega t\Delta\phi} \overset{\text{geo-sum}}= 
-    \mathcal{F} \lbrace I \rbrace*\frac{1-e^{-j\omega T\Delta\phi}}{T*(1-e^{-j\omega\Delta\phi})}
+    \frac{\mathcal{F} \lbrace I \rbrace}{T}*\frac{1-e^{-j\omega \Delta\phi}}{T*(1-e^{-j\omega\Delta\phi})}
     $$
  </div>
- **Whew**! What do we have here? It seems that we are multiplying the Fourier-representation of the original reference frame I by some scaled rational, complex function. To better understand the behavior of this function let's replace $z = e^{-j\omega\Delta\phi}$, thus obtaining the following transfer function
+ **Whew**! What do we have here? It seems that we are multiplying the scaled Fourier-representation of the original reference frame by a rational, complex function. To better understand the behavior of this function let's replace $z = e^{-j\omega\Delta\phi}$, thus obtaining the following transfer function
  <div>
     $$
     H(z)=\frac{1−z^T}{1-z}
     $$
  </div> 
- The object with this transfer function is known in DSP as a *T-point moving average filter*. We will get back to it in a bit, trying to understand its effects and characteristics.
+ This is the transfer function characterising a *moving average filter* (this makes sense!). We will get back to it in a bit, and understand just what exactly it does.
 
-  
+
 
 
