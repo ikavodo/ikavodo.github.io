@@ -99,7 +99,7 @@ $$
 
 Which looks simple enough already! Now what's left is to verify how we can explicitly write the operator $\mathcal{F} \lbrace W^t(I^t,\theta) \rbrace$.
 
-### Integrated image
+### Integrated image- Fourier formulation
 
 We begin by expressing the integrated image in terms of Fourier-domain operators. Recall the duality previously introduced in the [first]() blogpost.
 We had 
@@ -147,7 +147,7 @@ Next, if we plug this in to our Fourier-domain objective we finally obtain the f
     $$
     \mathcal{F}\lbrace \overline{I} \rbrace = 
     \frac{1}{T}\sum_{t=0}^{T-1} e^{-j\omega t\Delta\phi} *\mathcal{F} \lbrace I \rbrace = \frac{\mathcal{F} \lbrace I \rbrace}{T}\sum_{t=0}^{T-1} e^{-j\omega t\Delta\phi} \overset{\text{geo-sum}}= 
-    \frac{\mathcal{F} \lbrace I \rbrace}{T}*\frac{1-e^{-j\omega \Delta\phi}}{T*(1-e^{-j\omega\Delta\phi})}
+    \frac{\mathcal{F} \lbrace I \rbrace}{T}*\frac{1-e^{-j\omega T \Delta\phi}}{1-e^{-j\omega\Delta\phi}}
     $$
  </div>
  **Whew**! What do we have here? It seems that we are multiplying the scaled Fourier-representation of the original reference frame by a rational, complex function. To better understand the behavior of this function let's replace $z = e^{-j\omega\Delta\phi}$, thus obtaining the following transfer function
