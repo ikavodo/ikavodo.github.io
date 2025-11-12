@@ -156,13 +156,13 @@ Next, if we plug this in to our Fourier-domain objective we finally obtain the f
     $$
     \mathcal{F}\lbrace \overline{I} \rbrace = 
     \frac{1}{T}\sum_{t=0}^{T-1} e^{-j\omega t\Delta\phi} *\mathcal{F} \lbrace I \rbrace = \frac{\mathcal{F} \lbrace I \rbrace}{T}\sum_{t=0}^{T-1} e^{-j\omega t\Delta\phi} \overset{\text{geometric sum}}= 
-    \frac{\mathcal{F} \lbrace I \rbrace}{T}*\frac{1-e^{-j\omega T \Delta\phi}}{1-e^{-j\omega\Delta\phi}}
+    \mathcal{F} \lbrace I \rbrace*\frac{1-e^{-j\omega T \Delta\phi}}{T(1-e^{-j\omega\Delta\phi})}
     $$
  </div>
  **Whew**! What do we have here? It seems that we are multiplying the scaled Fourier-representation of the original reference frame by a rational, complex function, the numerator and denominator of which are both polynomials in the same complex number. To better understand the behavior of this function let's simplify each of these polynomials by replacing $z = e^{-j\omega\Delta\phi}$, thus obtaining the following *transfer function*
  <div>
     $$
-    H(z)=\frac{1−z^T}{1-z}
+    H(z)=\frac{1−z^T}{T(1-z)}
     $$
  </div> 
  This is known as a *moving average filter* (this makes sense!). We will get back to it in the next blog-post, and understand just what exactly it does. Until then, let's complete the Fourier-domain formulation of our optimization objective.
@@ -336,7 +336,7 @@ frames_high_res = torch.rand(B, 1, 1024, 1024)
 T_long = 64
 
 print('spatial pipeline processing time: ')
-%timeit spatial_pipeline(frames_high_res, T_long, shifts, differentiable=False)
+%timeit spatial_pipeline(frames_high_res, T_long, shifts)
 
 # pre-compute Fourier transforms for faster processing
 frames_fourier_high_res = torch.fft.fft2(frames_high_res, norm='forward', dim=(-2, -1))

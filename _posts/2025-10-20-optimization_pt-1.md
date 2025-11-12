@@ -240,7 +240,8 @@ Which of the two images will yield larger variance, and why?
 We now show how to use our full pipeline for optimization over shift parameters, solving for motion.
 
 ```python
-# estimated shifts should be within this distance from GT for successful optimization, equivalent to 1 EPE (end-to-end point error)   
+# estimated shifts should be within this distance from GT for successful optimization, equivalent to 1 EPE 
+# (end-to-end point error)   
 SUCCESS_THRESH = 1/T
 
 def compute_motion(videos, max_steps=400, thresh=SUCCESS_THRESH, num_trials=T):
