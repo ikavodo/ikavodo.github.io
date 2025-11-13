@@ -52,7 +52,7 @@ where p is represented in [homogeneous coordinates](https://en.wikipedia.org/wik
 
 As previously explained, we can add motion parameters to obtain more complicated motion, represented by a transformation with *more* degrees of freedom. As a result of the linearity of the motion transformation, the matrix is most easily represented as a *composition* of matrices representing the different motion parameter components. It is worthwhile then to *decompose* the motion transformation into the different matrix components, as we do in the next example, which represents a 3DoF rotation motion model: 
 <div>
-$$R_{\theta}(p) = \begin{bmatrix} \cos(\theta) & -\sin(\theta) & 0 \\ \sin(\theta) & \cos(\theta) & 0 \\ 0 & 0 & 1 \end{bmatrix} \cdot \begin{bmatrix} 1 & 0 & v_x \\ 0 & 1 & v_y \\ 0 & 0 & 1 \end{bmatrix} \cdot \begin{bmatrix} x \\ y \\ 1 \end{bmatrix} = \begin{bmatrix} \cos(\theta) & -\sin(\theta) & \cos(\theta)*v_x -\sin(\theta)*v_y \\ \sin(\theta) & \cos(\theta) & \sin(\theta)*v_x + \cos(\theta)*v_y \\ 0 & 0 & 1 \end{bmatrix} \cdot \begin{bmatrix} x \\ y \\ 1 \end{bmatrix}$$
+$$R_{\theta}(p) = \begin{bmatrix} \cos(\theta) & -\sin(\theta) & 0 \\ \sin(\theta) & \cos(\theta) & 0 \\ 0 & 0 & 1 \end{bmatrix} \cdot \begin{bmatrix} 1 & 0 & v_x \\ 0 & 1 & v_y \\ 0 & 0 & 1 \end{bmatrix} \cdot \begin{bmatrix} x \\ y \\ 1 \end{bmatrix} = \begin{bmatrix} \cos(\theta) & -\sin(\theta) & \cos(\theta)\cdot v_x -\sin(\theta)\cdot v_y \\ \sin(\theta) & \cos(\theta) & \sin(\theta)\cdot v_x + \cos(\theta)\cdot v_y \\ 0 & 0 & 1 \end{bmatrix} \cdot \begin{bmatrix} x \\ y \\ 1 \end{bmatrix}$$
 </div>
 
 Note that the composition 'rotates' the translation vector in the direction of rotation. What happens if we change the order of operations?
@@ -71,7 +71,7 @@ Now that we understand how to represent motion transformations as linear composi
 ### Spatial vs. Fourier-domain operators
 Why compute certain mathematical operations in the Fourier domain? The simplest answer has to do with the notion of *duality* between operators with regard to the two domains (see [first](https://ikavodo.github.io/fourier-transform-tutorial-pt-1/) [and second](https://ikavodo.github.io/fourier-transform-tutorial-pt-2/) blogposts). If one of two dual operators is more efficient to compute, then naturally its relevant domain is the better one within which to do the computation, given that we can transform to that domain 'fast enough' with respect to the order of complexity of the original problem  (does it make sense to transform to the Fourier domain to compute the *power* of a signal? Why not?). 
 
-For example, if we want to compute a convolution between two signals $s_1 \circledast s_2 $, we can use the duality $\circledast \overset{\mathcal{FT}}{\longleftrightarrow} \times$ together with a fast transform algorithm such as [FFT](https://en.wikipedia.org/wiki/Fast_Fourier_transform) to compute the convolution as multiplication in the Fourier domain, finally transforming back to get the desired result. Somewhat surprisingly, for long enough signals $s_1 s_2$, this would actually *be faster* than simply performing the convolution in the initial domain.  
+For example, if we want to compute a convolution between two signals $s_1 \circledast s_2 $, we can use the duality $\circledast \overset{\text{FT}}{\longleftrightarrow} \times$ together with a fast transform algorithm such as [FFT](https://en.wikipedia.org/wiki/Fast_Fourier_transform) to compute the convolution as multiplication in the Fourier domain, finally transforming back to get the desired result. Somewhat surprisingly, for long enough signals $s_1 s_2$, this would actually *be faster* than simply performing the convolution in the initial domain.  
 
 Next, why compute *our* specific motion-computation algorithm in the Fourier domain? This will hopefully become more clear in a bit, and it has to do with two different facets, the first of which relates to speed and computational-efficiency, and the second (and more important) one to utilizing *additional* Fourier-domain-based transforms and algorithms in order to *simplify* various motion models. Let's first understand why the Fourier transform is a 'good-fit' for our objective function in the first case, and how representing it in the Fourier domain in fact makes it *more interpretable*, as well as gives additional perspective about the problem.
 
@@ -113,18 +113,18 @@ Which looks simple enough already! It remains to become clear how we can *explic
 Let's express the integrated image now in terms of equivalent Fourier-domain operators. Recall the duality previously introduced in the [first]() blogpost.
 We had 
 <div>
-$$x[n-n_0]\overset{\text{FT}}{\leftrightarrow}e^{-j\omega n_o}X(e^{j\omega})$$,
+$$x[n-n_0]\overset{\text{FT}}{\leftrightarrow}e^{-j\omega n_o}\cdot X(e^{j\omega})$$,
 </div>
 Meaning that in 1D a shift in the time/spatial domain is equivalent to a phase shift in the frequency domain.
 Now suppose that we are working with a 2D (translation) parametric motion model, meaning that 
 $W(I,\theta) = I(x- \tau_x, y-\tau_y)$ where $ \theta = \begin{bmatrix} \tau_x \\ \tau_y \end{bmatrix}^T $. In the Fourier domain this transforms then into
 <div>
-$$\mathcal{F} \lbrace W(I_t,\theta) \rbrace = \mathcal{F} \lbrace I(x-\tau_x, y-	\tau_y) \rbrace = e^{-j\omega \phi}*\mathcal{F} \lbrace I \rbrace$$ 
+$$\mathcal{F} \lbrace W(I_t,\theta) \rbrace = \mathcal{F} \lbrace I(x-\tau_x, y-	\tau_y) \rbrace = e^{-j\omega \phi}\cdot \mathcal{F} \lbrace I \rbrace$$ 
 </div>
 with $\phi = \frac{\tau_x}{W}+\frac{\tau_y}{H}$ for an image I of dimensions $H \times W$. Now let's plug this back into our original equation, using the fact that 
  <div>
     $$
-    W^t(I_t,\theta) = I_t(x-t 	\tau_x, y-t 	\tau_y) \rightarrow \mathcal{F} \lbrace W^t(I_t,\theta) \rbrace = e^{-j\omega t \phi}*\mathcal{F} \lbrace I_t \rbrace
+    W^t(I_t,\theta) = I_t(x-t 	\tau_x, y-t 	\tau_y) \rightarrow \mathcal{F} \lbrace W^t(I_t,\theta) \rbrace = e^{-j\omega t \phi}\cdot \mathcal{F} \lbrace I_t \rbrace
     $$
  </div>
  plugging back into the original equation we get 
@@ -132,7 +132,7 @@ with $\phi = \frac{\tau_x}{W}+\frac{\tau_y}{H}$ for an image I of dimensions $H 
     $$
     \mathcal{F}\lbrace \overline{I} \rbrace \overset{\text{definition}} = 
     \frac{1}{T}\sum_{t=0}^{T-1} \mathcal{F} \lbrace W^t(I_t,\theta) \rbrace \overset{\text{shift theorem}}= 
-    \frac{1}{T}\sum_{t=0}^{T-1} e^{-j\omega t\phi}*\mathcal{F} \lbrace I_t \rbrace \rbrace
+    \frac{1}{T}\sum_{t=0}^{T-1} e^{-j\omega t\phi}\cdot \mathcal{F} \lbrace I_t \rbrace \rbrace
     $$
  </div>
 
@@ -144,9 +144,9 @@ $$I_t(x, y) = I(x + t\tau_x^*, y + t\tau_y^*)$$
 
 for some ground truth motion vector $\theta^* = \begin{bmatrix} \tau_x^* \\ \tau_y^* \end{bmatrix}^T $, then continuing to simplify our previous expression we get
 <div>
-$$\mathcal{F} \lbrace W^t(I_t,\theta) \rbrace = e^{-j\omega t\phi}*\mathcal{F} \lbrace I_t \rbrace = 
-e^{-j\omega t\phi}*(e^{j\omega t\phi^*}\mathcal{F} \lbrace I \rbrace) = 
-e^{-j\omega t\Delta\phi} *\mathcal{F} \lbrace I \rbrace
+$$\mathcal{F} \lbrace W^t(I_t,\theta) \rbrace = e^{-j\omega t\phi}\cdot \mathcal{F} \lbrace I_t \rbrace = 
+e^{-j\omega t\phi}\cdot (e^{j\omega t\phi^*}\mathcal{F} \lbrace I \rbrace) = 
+e^{-j\omega t\Delta\phi} \cdot \mathcal{F} \lbrace I \rbrace
 $$ 
 </div>
 where $ \Delta\phi = \phi - \phi^* = \frac{\tau_x - \tau_x^* }{W} + \frac{\tau_y - \tau_y^* }{H} $, meaning the resulting phase shift represents the displacement between the estimated motion vector and the ground truth.
@@ -155,8 +155,8 @@ Next, if we plug this in to our Fourier-domain objective we finally obtain the f
  <div>
     $$
     \mathcal{F}\lbrace \overline{I} \rbrace = 
-    \frac{1}{T}\sum_{t=0}^{T-1} e^{-j\omega t\Delta\phi} *\mathcal{F} \lbrace I \rbrace = \frac{\mathcal{F} \lbrace I \rbrace}{T}\sum_{t=0}^{T-1} e^{-j\omega t\Delta\phi} \overset{\text{geometric sum}}= 
-    \mathcal{F} \lbrace I \rbrace*\frac{1-e^{-j\omega T \Delta\phi}}{T(1-e^{-j\omega\Delta\phi})}
+    \frac{1}{T}\sum_{t=0}^{T-1} e^{-j\omega t\Delta\phi} \cdot \mathcal{F} \lbrace I \rbrace = \frac{\mathcal{F} \lbrace I \rbrace}{T}\sum_{t=0}^{T-1} e^{-j\omega t\Delta\phi} \overset{\text{geometric sum}}= 
+    \mathcal{F} \lbrace I \rbrace \cdot \frac{1-e^{-j\omega T \Delta\phi}}{T(1-e^{-j\omega\Delta\phi})}
     $$
  </div>
  **Whew**! What do we have here? It seems that we are multiplying the scaled Fourier-representation of the original reference frame by a rational, complex function, the numerator and denominator of which are both polynomials in the same complex number. To better understand the behavior of this function let's simplify each of these polynomials by replacing $z = e^{-j\omega\Delta\phi}$, thus obtaining the following *transfer function*
@@ -184,7 +184,7 @@ Now for an image I of dimensions $H \times W$ we can use the sample mean to repr
 Note that 
 <div>
     $$ 
-     \sum_{x=0}^{W-1}\sum_{y=0}^{H-1} I(x, y) = \sum_{x=0}^{W-1}\sum_{y=0}^{H-1} I(x, y)*e^{-2\pi j0} 
+     \sum_{x=0}^{W-1}\sum_{y=0}^{H-1} I(x, y) = \sum_{x=0}^{W-1}\sum_{y=0}^{H-1} I(x, y)\cdot e^{-2\pi j0} 
      = \mathcal{F}_{0, 0} \lbrace{I} \rbrace 
     $$
  </div>

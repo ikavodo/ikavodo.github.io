@@ -190,7 +190,7 @@ What have we learned so far? That we can interpret the integral $\int_{-\pi}^{\p
 
 Another theorem relating to Fourier transforms which will prove useful for this purpose is the time-shift theorem 
 <div>
-$$g[n-n_0]\overset{\text{FT}}{\leftrightarrow}e^{-j\omega n_o}X(e^{j\omega})$$,
+$$x[n-n_0]\overset{\text{FT}}{\leftrightarrow}e^{-j\omega n_o}X(e^{j\omega})$$,
 </div>
 
 which intuitively establishes a relationship between a time-shift in the time-domain and a phase-shift in the frequency domain. We can use this theorem to verify that 
