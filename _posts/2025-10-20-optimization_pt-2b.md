@@ -1,7 +1,7 @@
 ---
 title: "Motion computation via an unsupervised-learning approach (pt.3)"
 layout: post
-date: 2025-11-06 14:00
+date: 2025-11-14 14:00
 image: 
 headerImage: false
 tags:
@@ -13,7 +13,7 @@ category: blog
 author: Ido Akov
 description: "Optimization"
 ---
-This blog-post is a direct continuation of the [previous one](https://ikavodo.github.io/optimization_pt-2/), where I didn't want to overdo it length-wise.
+This blog-post is a direct continuation of the [previous one](https://ikavodo.github.io/optimization_pt-2/).
  
 ## Fourier-domain optimization (continued)
 Recall that we are formulating our optimization objective in the Fourier-domain, the motivations for which will hopefully be made clearer in the close future. So far we've seen that a Fourier-domain implementation is possibly *faster* than a spatial-domain one, depending on our exact objective formulation, inputs, etc... In this current blog-post we will also obtain some necessary intuition about the *nature* of our optimization task, through its Fourier-domain interpretation.
@@ -32,7 +32,6 @@ where
     \mathcal{F} \lbrace I \rbrace \cdot \frac{1-e^{-j\omega T \Delta\phi}}{T(1-e^{-j\omega\Delta\phi})}
     $$
  </div>
-
 We've seen that the rational component is known in its transfer-function form as a *moving-average filter*. We will learn more about the nature of this filter in this current blog-post, as well as why it is *insufficient* in itself for successful Fourier-domain optimization.
 
 ### First optimization trial (naive)
@@ -335,25 +334,38 @@ Now then, looking back to the loss landscape for the Fourier optimization object
 
 Given our newly-gained knowledge about the behavior of the moving-average filter and its less-than-sufficient attenuation, we can interpret this oscillation as an artifact caused by the "left-over" high-frequency components after filtering. In other words, we need *additional* attenuation of high-frequency content in the integrated image for optimization to work, meaning that additional low-pass filtering is necessary.  
 
-### Interpolation as a low-pass filter
+### Bilinear interpolation as a low-pass filter
 Going back to the difference between spatial and Fourier domains, we note that the one operation which we didn't previously address was *bilinear interpolation* in the frame warping. The initial motivation for this operation was to ensure differentiability for the spatial-domain optimization (recall that "rolling" the image frames is non-differentiable), where "bilinear interpolation is arguably the simplest possible separable method that produces a con-
-tinuous (differentiable) function"[^1]. Consequently, the operation has *profound* consequences in the Fourier domain as well. Let's get to know these by modelling the operator first as a kernel in the time/spatial domain, and then looking at its Fourier-equivalent operator.
+tinuous (differentiable) function"[^1]. Consequently, the operation has *profound* consequences in the Fourier domain as well. 
 
-The bilinear interpolation kernel is separable and defined as:
+Let's get to know these by modelling the operator first as a kernel in the time/spatial domain, and then looking at its Fourier-equivalent operator.
 
+The **linear interpolation kernel** (also called the *triangular* kernel) is defined as
 <div>
 $$
-k(x, y) = \operatorname{tri}(x)\,\operatorname{tri}(y),
-\qquad
-\operatorname{tri}(t) = \max(1 - |t|, 0).
+k(t) = \operatorname{tri}(t) =
+\begin{cases}
+1 - |t|, & |t| \le 1, \\
+0,       & |t| > 1.
+\end{cases}
 $$
 </div>
 
-The triangular function can be written as the convolution of two rectangular functions:
+For **bilinear interpolation** in two dimensions, we use the **separable** extension of this kernel.
+If $k(t)$ is the 1-D interpolation kernel, then the 2-D bilinear interpolation kernel is
+<div>
+$$
+k_{\mathrm{bilinear}}(x, y) = k(x)\, k(y).
+$$
+</div>
+
+This means that bilinear interpolation is performed by convolving the signal/image first along one axis using `k`, and then along the other axis using the same kernel.
+
+The triangular kernel can be written as the convolution of two rectangular functions:
 
 <div>
 $$
-\operatorname{tri}(t) = \operatorname{rect}(t) * \operatorname{rect}(t),
+\operatorname{tri}(t) = \operatorname{rect}(t) \circledast \operatorname{rect}(t),
 \qquad
 \operatorname{rect}(t) =
 \begin{cases}
@@ -363,38 +375,105 @@ $$
 $$
 </div>
 
----
+This proves useful for computing the Fourier transform of the kernel, where using the dualities $\circledast \;\overset{\text{FT}}{\longleftrightarrow}\; \times , \operatorname{rect} \overset{\text{FT}}{\longleftrightarrow} \operatorname{sinc}$ (see [this](https://ikavodo.github.io/fourier-transform-tutorial-pt-2/) blogpost) we get:
 
-Now using the continuous-time Fourier transform convention
+<div> 
+$$ 
+\mathcal{F}\{\operatorname{tri}\} \;=\; \mathcal{F}\{\operatorname{rect} \circledast \operatorname{rect}\} \;{=}\; \mathcal{F}\{\operatorname{rect}\}\; \mathcal{F}\{\operatorname{rect}\} \;{=}\; \operatorname{sinc}^{2}. 
+$$ 
+</div>
+Meaning the bilinear interpolation kernel is equivalent to a squared sinc function in the frequency domain. 
+What is the interpretation of the frequency response of this filter? Obviously it is quite close in nature to the squared frequency response of the moving average filter, but whereas the latter is *periodic*, sinc decays over time. We can easily show that the former has better high-frequency suppression, via the inequality
 
 <div>
 $$
-\mathcal{F}\{f\}(\omega) = \int_{-\infty}^{\infty} f(t)e^{-j\omega t}\,dt,
-\qquad
-\sin c_c(z) = \frac{\sin z}{z},
+|\sin(x)| \le |x| 
+\;\forall x 
+\;\Rightarrow\;
+\frac{1}{|T \sin\!\left(\tfrac{x}{2}\right)|}
+\;\ge\;
+\frac{1}{|\tfrac{T x}{2}|}
+\;\Rightarrow\;
+|\frac{\sin\!\left(\tfrac{T x}{2}\right)}{T \sin\!\left(\tfrac{x}{2}\right)}|
+\;\ge\;
+|\frac{\sin\!\left(\tfrac{T x}{2}\right)}{\tfrac{T x}{2}}|
 $$
 </div>
+Where the last two expressions are the moving average filter and bilinear interpolation frequency responses respectively. It makes sense then to apply *both* of these operations to obtain a smoother, more convex optimization landscape. We can exhibit this behavior by looking at the frequency responses of each of the filters, as well as a *cascade* (product in the frequency-domain) of the two:
+![freq_response](/assets/freq_response.png)  
 
-we have
+Note that the cascaded filters frequency response (green) has virtually no magnitude for frequency beyond the stop-band, meaning our optimization landscape should now be in much better shape!
 
-<div>
-$$
-\mathcal{F}\{\operatorname{rect}\}(\omega) = \sin c_c\!\left(\frac{\omega}{2}\right),
-\qquad
-\mathcal{F}\{\operatorname{tri}\}(\omega) = \sin c_c^2\!\left(\frac{\omega}{2}\right).
-$$
-</div>
+## Second optimization trial (with interpolation)
 
-Since the kernel is separable:
+We implement the frequency-domain interpolation in code as follows:
 
-<div>
-$$
-K(\omega_x, \omega_y)
-= \mathcal{F}_2\{k\}(\omega_x, \omega_y)
-= \sin c_c^2\!\left(\frac{\omega_x}{2}\right)
-  \sin c_c^2\!\left(\frac{\omega_y}{2}\right).
-$$
-</div>
+```python
+
+def make_sinc_2d(u, v, W, H):
+        # Separate u and v components for proper 2D bilinear
+        u_norm = u.unsqueeze(0) / W  # Normalized frequencies
+        v_norm = v.unsqueeze(0) / H
+        
+        # 2D separable bilinear kernel
+        sinc_u = torch.sinc(u_norm) ** 2  # Smooth in u-direction
+        sinc_v = torch.sinc(v_norm) ** 2  # Smooth in v-direction  
+        sinc_2d = sinc_u * sinc_v
+        return sinc_2d
+```
+And incorporate it into our own existing code
+
+```python
+
+def fourier_pipeline_video(frames: torch.Tensor, shifts: torch.Tensor,
+                                          weighted=False, fourier_input=False, base_alpha=BASE_ALPHA,
+                                           interpolate=False
+                            ):
+    """
+    Fully differentiable Fourier-domain warping and integration.
+    Args:
+        frames: (B, T, H, W) spatial frames
+        shifts: (B, 2) shift vector per batch
+        weighted: whether to apply geometric weighting
+    Returns:
+        shifted: (B, T, H, W) phase-shifted FFTs
+        integrated_fft: (B, H, W) integrated FFT
+        total_power: (B,) variance-like scalar
+    """
+    # no change to previous code
+    ...
+    if interpolate:
+        # implement bilinear interpolation
+        sinc_2d = make_sinc_2d(u, v, W, H)
+        shifted = X * phase_shifts * sinc_2d.unsqueeze(1)  # Apply to all frames
+    else:
+        shifted = X * phase_shifts  # (B,T,H,W)
+
+    # no change to next code
+    ...
+    return shifted, integrated_fft, total_power
+
+
+``` 
+We are now ready to run our code once more, obtaining the following optimization results
+```bash
+GT shifts: tensor([[ 4,  2],
+        [ 0, -2]])
+
+=== Running spatial pipeline ===
+Total successful convergences: 10/10
+
+=== Running fourier pipeline ===
+Total successful convergences: 10/10
+```
+and the following loss landscape
+![Loss landscape corrected](/assets/loss_landscape_corrected.png)  
+
+Success! We've discovered that not only is bilinear interpolation *sufficient* for optimization (by providing differentiability in the spatial domain implementation), but it is also *necessary* for ensuring that our optimization landscape is smooth and convex.
+
+Next time, we'll take a look at some of the more theoretical aspects of the problem, mostly through the connection of our optimization objective to a well-known signal processing algorithm known as **generalized cross-correlation phase transform (GCC-PHAT)**. We will go down to 1D for more simplified analytical forms, which will once more give us additional intuition. Most importantly, we will begin discussing possible models for occlusion, and see how these affect our notion of the problem, objective, etc...
+
+See you next time!
 
 
 [^1]: P. Getreuer, “Linear Methods for Image Interpolation.” Image Processing On Line, 2011. DOI: 10.5201/ipol.2011.g_lmii.
