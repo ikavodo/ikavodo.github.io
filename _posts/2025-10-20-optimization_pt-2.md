@@ -379,6 +379,6 @@ fourier pipeline processing time:
 46.7 ms ± 1.71 ms per loop (mean ± std. dev. of 7 runs, 10 loops each)
 ```
 
-It seems that the Fourier domain implementation is 2-3 times faster than the spatial domain implementation. Not too bad!
+It seems that the Fourier domain implementation is ~2.5 times faster than the spatial domain implementation. Not too bad!
 
 Next time, we'll deal with the actual optimization procedure in the Fourier domain. 
