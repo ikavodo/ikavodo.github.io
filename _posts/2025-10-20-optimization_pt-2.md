@@ -327,30 +327,29 @@ def fourier_pipeline(frames: torch.Tensor, T: int, shifts: torch.Tensor, dim=(-2
 
 Quick sanity check that the spatial and Fourier domain implementations yield the same value:
 ```python
-#reproducibility
-torch.manual_seed(0)
 
 # image dimensions
 B = 2  # Batch size
 H, W = 128, 128  # Image dimensions
 T = 5  # Number of frames in motion video
-SHIFT_SCALE = max(H, W)//(5*T*B) # don't want shape to leave margin within T steps
+
+SHIFT_SCALE = max(H, W)//(5*T*B) # Use this to set up a margin for movement within the video
 
 # comparison params
 atol = 1e-4 #close enough for variance checks, can be set to 1e-4 for almost all purposes in this notebooks
-mse_thresh = 1e-10 # difference between warped images
 
 # Define shifts (for example, shift by (5, 3) for each sample in the batch)
 shifts = (torch.arange(-B, B).reshape(B,2)) * SHIFT_SCALE # shape (B, 2)
 image_dims = B, H, W
-frames, bounds = make_image(image_dims)
-# full pipeline
 
+# Implemented this in previous blog-post
+frames, _ = make_image(image_dims)
+
+# Both pipelines
 integrated_spatial, var_spatial = spatial_pipeline(frames, T, shifts)
-
 integrated_fourier, var_fourier = fourier_pipeline(frames, T, shifts)
 
-assert torch.allclose(var_spatial, var_fourier, atol=atol), "Domain implementations don't yield same result!"
+assert torch.allclose(var_spatial, var_fourier, atol=atol), "Domain implementations don't yield same result"
 ```
 
 All quiet on the western front.
