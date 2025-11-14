@@ -316,7 +316,7 @@ $$
 Note that we have separated the moving-average filter into phase and magnitude components, meaning that computing the frequency response from here is straightforward. The magnitude usually ends up looking something like (found this online, forgive the spelling mistake in the title)
  ![Moving average](/assets/moving_avg_freq_response.png)  
 
-Where in this case we see the magnitude spectrum of a $T=7$-tap moving-average filter. We see that the filter generally has a low-pass behavior, with certain 'richochets' or rebounds of magnitude, which we will see later lead to all kinds of problems. 
+Where in this case we see the magnitude spectrum of a 7-tap ($T=7$) moving-average filter. We see that the filter generally has a low-pass behavior, with certain 'richochets' or rebounds of magnitude, which we will see later lead to all kinds of problems. 
 
 Let's get some perspective on the filter from an experienced practitioner, via [The Scientist and Engineer's Guide to Digital Signal Processing](https://www.dspguide.com/):
 > Not only is the moving average filter very good for many applications, it is *optimal* for a common problem, reducing random white noise
@@ -402,7 +402,7 @@ $$
 Where the last two expressions are the moving average filter and bilinear interpolation frequency responses respectively. It makes sense then to apply *both* of these operations to obtain a smoother, more convex optimization landscape. We can exhibit this behavior by looking at the frequency responses of each of the filters, as well as a *cascade* (product in the frequency-domain) of the two:
 ![freq_response](/assets/freq_response.png)  
 
-Note that the cascaded filters frequency response (green) has virtually no magnitude for frequency beyond the stop-band, meaning our optimization landscape should now be in much better shape!
+Note that the cascaded filters frequency response (green) has virtually no magnitude for frequency beyond the stop-band frequency of $\frac{1}{T}=0.125$, meaning our optimization landscape should now be in much better shape!
 
 ## Second optimization trial (with interpolation)
 
