@@ -469,7 +469,12 @@ Total successful convergences: 10/10
 and the following loss landscape
 ![Loss landscape corrected](/assets/loss_landscape_corrected.png)  
 
-Success! We've discovered that not only is bilinear interpolation *sufficient* for optimization (by providing differentiability in the spatial domain implementation), but it is also *necessary* for ensuring that our optimization landscape is smooth and convex.
+Success! Note also that the shift estimates in the Fourier domain appear to converge slightly faster (end up generally closer) to the ground truth shift than in the spatial-domain case.
+
+## Conclusion
+We've discovered that not only is bilinear interpolation *sufficient* for optimization (by providing differentiability in the spatial domain implementation), but it is also *necessary* for ensuring that our optimization landscape is smooth and convex. 
+
+Note however that in our Fourier domain implementation we are not *bound* to use interpolation (as in the spatial domain case, where it is very efficient to compute), but rather may choose *any* suitable low-pass filters. There are better possibilities out there, such as the [Lanczos filter](https://en.wikipedia.org/wiki/Lanczos_resampling), which may pop back in the next blog-posts! Stay tuned. 
 
 Next time, we'll take a look at some of the more theoretical aspects of the problem, mostly through the connection of our optimization objective to a well-known signal processing algorithm known as **generalized cross-correlation phase transform (GCC-PHAT)**. We will go down to 1D for more simplified analytical forms, which will once more give us additional intuition. Most importantly, we will begin discussing possible models for occlusion, and see how these affect our notion of the problem, objective, etc...
 
