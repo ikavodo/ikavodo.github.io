@@ -381,4 +381,4 @@ fourier pipeline processing time:
 
 It seems that the Fourier domain implementation is ~2.5 times faster than the spatial domain implementation. Not too bad!
 
-Next time, we'll deal with the actual optimization procedure in the Fourier domain. 
+Next time, we'll deal with the actual optimization procedure in the Fourier domain, and adddress some problems which come up, learning something in the process. 
