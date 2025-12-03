@@ -29,10 +29,10 @@ where
 <div>
     $$
     \mathcal{F}\lbrace \overline{I} \rbrace = 
-    \mathcal{F} \lbrace I \rbrace \cdot \frac{1-e^{-j\omega T \Delta\phi}}{T(1-e^{-j\omega\Delta\phi})}
+    \mathcal{F} \lbrace I \rbrace \cdot \mathcal{H_T}(\Delta \phi), \quad \mathcal{H_T}(\Delta \phi) = \frac{1-e^{-j\omega T \Delta\phi}}{T(1-e^{-j\omega\Delta\phi})}
     $$
  </div>
-We've seen that the rational component is known in its transfer-function form as a *moving-average filter*. We will learn more about the nature of this filter in this current blog-post, as well as why it is *insufficient* in itself for successful Fourier-domain optimization.
+Where $\mathcal{H_T}(\Delta \phi)$ is known as a *moving-average filter* of order T. We will learn more about the nature of this filter in this current blog-post, as well as why it is *insufficient* in itself for successful Fourier-domain optimization.
 
 ### First optimization trial (naive)
 
@@ -394,12 +394,12 @@ $$
 \;\ge\;
 \frac{1}{|\tfrac{T x}{2}|}
 \;\Rightarrow\;
-|\frac{\sin\!\left(\tfrac{T x}{2}\right)}{T \sin\!\left(\tfrac{x}{2}\right)}|
+|\frac{\sin\!\left(\tfrac{T x}{2}\right)}{T \sin\!\left(\tfrac{x}{2}\right)}|^2
 \;\ge\;
-|\frac{\sin\!\left(\tfrac{T x}{2}\right)}{\tfrac{T x}{2}}|
+|\frac{\sin\!\left(\tfrac{T x}{2}\right)}{\tfrac{T x}{2}}|^2
 $$
 </div>
-Where the last two expressions are the moving average filter and bilinear interpolation frequency responses respectively. It makes sense then to apply *both* of these operations to obtain a smoother, more convex optimization landscape. We can exhibit this behavior by looking at the frequency responses of each of the filters, as well as a *cascade* (product in the frequency-domain) of the two:
+Where the last two expressions are the squared moving average filter and bilinear interpolation frequency responses respectively. It makes sense then to apply *both* of these operations to obtain a smoother, more convex optimization landscape. We can exhibit this behavior by looking at the frequency responses of each of the filters, as well as a *cascade* (product in the frequency-domain) of the two:
 ![freq_response](/assets/freq_response.png)  
 
 Note that the cascaded filters frequency response (green) has virtually no magnitude for frequency beyond the stop-band frequency of $\frac{1}{T}=0.125$, meaning our optimization landscape should now be in much better shape!

@@ -79,7 +79,7 @@ $$
 
 <div>
 $$
-W^t(I_t, \theta) =
+W^t(I, \theta) =
 (\underbrace{W \circ W \circ \cdots \circ W}_{t \text{ times}})(I_t, \theta)
 $$
 </div>
