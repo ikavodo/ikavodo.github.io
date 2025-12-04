@@ -449,7 +449,9 @@ We've essentially created a link between our two optimization objectives, where 
 
 We now have "pure" energy (magnitude) and phase "flavors" of our GCC-PHAT objective, obtainable by choosing spectral-weighting factors $\alpha\in\lbrace {0,1} \rbrace$ respectively, where we've seen that $\alpha=0$ gives us our previous variance optimization objective, and $\alpha=1$ the PHAT optimization objective (up to necessary interpolation/smoothing operations). Comparing these two objectives, the variance objective maximizes coherent energy, where an incorrect shift creates destructive interference. On the other hand, for the PHAT objective the phase component is used to align a sharp correlation peak, which is smoothed by the Fejér kernel.
 
-We can treat the first as a more "global" method, while the second is more "local". The need for a trade-off between these two comes up in the case of noisy signals, in which the additive nature of the Fourier transform causes both phase *and* magnitude information to be offset/randomized by the noisy component. It makes sense then in this case to utilize a mix of *both* when computing the ground truth shift. We'll make a comparison of the utility of these different objectives in the next blogpost, using a sample of clean/noisy image pairs.
+We can treat the first as a more "global" method, while the second is more "local". The need for a trade-off between these two comes up in the case of noisy signals, in which the additive nature of the Fourier transform causes both phase *and* magnitude information to be offset/randomized by the noisy component. It makes sense then in this case to utilize a mix of *both* when computing the ground truth shift. 
+
+We'll make a comparison of the utility of these different objectives in the next blogpost, using samples of clean and noisy image pairs.
 
 Until then!
 
@@ -514,5 +516,5 @@ We will compare these two approaches more concretely in the next blog-post, in w
 
 Until then! -->
 
-## Footnotes
-[^1]: We are in essence using a simple *heuristic* instead of hand-crafting bin weights. This idea pops up plenty in statistical signal-processing (see [this](https://en.wikipedia.org/wiki/Inverse-variance_weighting))
+<!-- ## Footnotes
+[^1]: We are in essence using a simple *heuristic* instead of hand-crafting bin weights. This idea pops up plenty in statistical signal-processing (see [this](https://en.wikipedia.org/wiki/Inverse-variance_weighting)) -->
