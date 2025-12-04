@@ -310,7 +310,7 @@ We fathom from this, that regardless of additional smoothing operations which ca
 
 Given this knowledge, how can we further improve our PHAT-based optimization objective?
 
-## Generalized Cross-Correlation (GCC) and Spectral Weighting Functions
+## Generalized Cross-Correlation (GCC)
 
 The standard Generalized Cross-Correlation (GCC) function is defined in the frequency domain as:
 
@@ -329,9 +329,6 @@ $ \Psi(f) = \frac{1}{\|G_{xy}(f)\|}$, which is the equivalent of normalizing the
 
 A slight generalization of this idea which gives us a nice *family* of filters is to formulate $ \Psi(f) = 1/\|G_{xy}(f)\|^{\alpha}$, for $ \alpha \in [0, 1]$.
 For $ \alpha =1$ we get our original PHAT formulation, and for $ \alpha =0$ we have the original cross-power spectrum $G_{xy}$. We call this variant then *GCC-PHAT*, on account of its generating a whole "spectrum" (ha) between the phase-transformation and cross-power spectrum variants.
-
-A good compromise between the two is naturally obtained via $\alpha \approx 0.5$. Such a compromise is particularly useful in the case of *noisy* signals (having a stationary noise component). This affects the resulting time-domain Dirichlet kernel, which in essence is 'smeared' by the effect of random noisy phase-components. The weights then "boost" higher-magnitude frequency bins, which in turn have higher relative SNR, giving us 'more' information from the clean signal component. Note that intuitively this is a similar idea to that of the classical *Wiener filter*, where the latter estimates the clean vs. noisy signal components to 'hand-craft' weights per frequency bin[^1].  
-
 
 Let's see the effect of varying this alpha on our optimization objective, slightly revising our previous code
 
@@ -381,8 +378,8 @@ Instead, we can use our knowledge from this [previous blogpost](https://ikavodo.
 We obtain a pair of integrated images by partitioning our video into even and odd frame subsets, and then compute integrated images in the following way:
 <div>
 $$
-I_{even} = \frac{2}{N-1}\sum_{t=2m}^{N-1} W^t(I_t, \tau) = \frac{2}{N-1}\sum_{t=2m}^{N-1} e^{-j\omega t\phi} \cdot (e^{-j\omega t\phi^*}  \mathcal{F} \lbrace I_0 \rbrace + \mathcal{F} \lbrace V \rbrace) \\ 
-= \frac{2}{N-1}(\sum_{m=0}^{\frac{N-1}{2}} e^{-j\omega 2m\Delta \phi} \mathcal{F} \lbrace I_0 \rbrace + \sum_{m=0}^{\frac{N-1}{2}} e^{-j\omega 2m\phi} \mathcal{F} \lbrace V \rbrace) = \left( \mathcal{H_{\frac{N}{2}}}(\Delta \phi) \cdot \mathcal{F} \lbrace I_0 \rbrace + \mathcal{H_{\frac{N}{2}}}(\phi) \cdot \mathcal{F} \lbrace V \rbrace \right)
+I_{even} = \frac{2}{N}\sum_{t=2m}^{N-1} W^t(I_t, \tau) = \frac{2}{N}\sum_{t=2m}^{N-1} e^{-j\omega t\phi} \cdot (e^{-j\omega t\phi^*}  \mathcal{F} \lbrace I_0 \rbrace + \mathcal{F} \lbrace V \rbrace) \\ 
+= \frac{2}{N}(\sum_{m=0}^{\frac{N-1}{2}} e^{-j\omega 2m\Delta \phi} \mathcal{F} \lbrace I_0 \rbrace + \sum_{m=0}^{\frac{N-1}{2}} e^{-j\omega 2m\phi} \mathcal{F} \lbrace V \rbrace) = \left( \mathcal{H_{\frac{N}{2}}}(\Delta \phi) \cdot \mathcal{F} \lbrace I_0 \rbrace + \mathcal{H_{\frac{N}{2}}}(\phi) \cdot \mathcal{F} \lbrace V \rbrace \right)
 $$
 </div>
 where $\phi = \frac{\tau}{W}, \quad \Delta \phi = \frac{\tau - \tau^*}{W}$ and
@@ -391,7 +388,7 @@ where $\phi = \frac{\tau}{W}, \quad \Delta \phi = \frac{\tau - \tau^*}{W}$ and
 $I_{odd}$ is constructed similarly over frames with odd time-steps, with the only exception 
 <div>
     $$
-    I_{odd} = \frac{2}{N-1}\sum_{t=2m+1}^{N-1} W^{t-1}(I_t, \tau) = ...
+    I_{odd} = \frac{2}{N}\sum_{t=2m+1}^{N-1} W^{t-1}(I_t, \tau) = ...
     $$
 </div> 
 Meaning that all odd-frames are mapped translated back to the *reference odd frame* (why we do it this way will become clear soon).
@@ -401,7 +398,7 @@ Note that of the two moving-average filters derived in the equation, $\mathcal{H
 Now coming back to our integrated images, note that 
 <div>
     $$
-    I_{odd} = e^{-j\omega \phi^*} \cdot I_{even}
+    I_{even} = e^{-j\omega \phi^*} \cdot I_{odd}
     $$
 </div>
 
@@ -412,23 +409,53 @@ From here computing GCC-PHAT is straightforward, where we have
     \frac{I_{odd} \cdot \overline{I_{even}}}{|I_{odd} \cdot \overline{I_{even}}|^\alpha} = \frac{e^{-j\omega \phi^*} I_{even} \cdot \overline{I_{even}}}{|e^{-j\omega \phi^*} I_{even} \cdot \overline{I_{even}}|^\alpha} = \frac{ e^{-j\omega \phi^*}|I_{even}|^2}{|I_{even}|^{2\alpha}} =  |I_{even}|^{2(1-\alpha)}e^{-j\omega \phi^*} 
     $$
 </div> 
-plugging in $\alpha=0.5$ we get
+Let's plug in different values for $\alpha$! Starting with $\alpha=0$ we get
 
 <div>
     $$
-    |I_{even}|e^{-j\omega \phi^*} = |\mathcal{H_{\frac{N}{2}}}(\Delta \phi) \cdot \mathcal{F} \lbrace I_0 \rbrace + \mathcal{H_{\frac{N}{2}}}(\phi) \cdot \mathcal{F} \lbrace V \rbrace| * e^{-j\omega \phi^*} \approx |\mathcal{H_{\frac{N}{2}}}(\Delta \phi) \cdot \mathcal{F} \lbrace I_0 \rbrace + \frac{\mathcal{F} \lbrace V \rbrace}{\sqrt{\frac{N}{2}}}| * e^{-j\omega \phi^*}
+    |I_{even}|^2\cdot e^{-j\omega \phi^*} = |\mathcal{H_{\frac{N}{2}}}(\Delta \phi) \cdot \mathcal{F} \lbrace I_0 \rbrace + \mathcal{H_{\frac{N}{2}}}(\phi) \cdot \mathcal{F} \lbrace V \rbrace|^2 * e^{-j\omega \phi^*}
     $$
 </div>
-Using the fact that the moving-average filter noise reduction is approximately equal to a factor of the square-root of the order of the filter (see explanation elsewhere).
+Note that optimizing over the magnitude of this signal 
+<div>
+    $$
+    \sum_{k \neq 0} ||\mathcal{H_{\frac{N}{2}}}(\Delta \phi) \cdot \mathcal{F} \lbrace I_0 \rbrace + \mathcal{H_{\frac{N}{2}}}(\phi) \cdot \mathcal{F} \lbrace V \rbrace|^2 * e^{-j\omega \phi^*}| = \sum_{k \neq 0} |\mathcal{H_{\frac{N}{2}}}(\Delta \phi) \cdot \mathcal{F} \lbrace I_0 \rbrace + \mathcal{H_{\frac{N}{2}}}(\phi) \cdot \mathcal{F} \lbrace V \rbrace|^2
+    $$
+</div>
+is equivalent to our original optimization objective, up to the order of the moving average filter!
 
 Now as N grows we have  
 <div>
     $$
-    \lim_{N \to +\infty} |\mathcal{H_{\frac{N}{2}}}(\Delta \phi) \cdot \mathcal{F} \lbrace I_0 \rbrace + \frac{\mathcal{F} \lbrace V \rbrace}{\sqrt{\frac{N}{2}}}| * e^{-j\omega \phi} = |\mathcal{H_\infty}(\Delta \phi) \cdot \mathcal{F} \lbrace I_0 \rbrace| * e^{-j\omega \phi}
+    |\mathcal{H_{\frac{N}{2}}}(\Delta \phi) \cdot \mathcal{F} \lbrace I_0 \rbrace + \mathcal{H_{\frac{N}{2}}}(\phi) \cdot \mathcal{F} \lbrace V \rbrace|^2 * e^{-j\omega \phi^*} \approx \lim_{N \to +\infty} |\mathcal{H_{\frac{N}{2}}}(\Delta \phi) \cdot \mathcal{F} \lbrace I_0 \rbrace + \frac{\mathcal{F} \lbrace V \rbrace}{\sqrt{\frac{N}{2}}}| * e^{-j\omega \phi} \\
+    = |\mathcal{H_\infty}(\Delta \phi) \cdot \mathcal{F} \lbrace I_0 \rbrace| * e^{-j\omega \phi}
     $$
 </div>
-Meaning that the effect of the noise-component becomes negligable compared to that of the signal, meaning we have successfully found a GCC-PHAT informed algorithm to compute shifts between noisy frames!   
+Using the fact that the moving-average filter reduces noise by approximately the square-root of its order (see explanation elsewhere), meaning that the effect of the noise-component becomes negligable compared to that of the signal.
 
+### Connecting the two optimization objectives
+
+Finally, note that we can "revert" our GCC-PHAT objective into the *exact* previous objective by computing the integrated image from integrated pairs by
+<div>
+    $$
+    \sum_{k \neq 0} |\frac{I_{even} + e^{-j\omega \phi} \cdot I_{odd}}{2}|^2 = \sum_{k \neq 0}  |\frac{1}{N}  \cdot \left( \sum_{t=2m}^{N-1} W^t(I_t, \tau) + e^{-j\omega \phi} \cdot \sum_{t=2m+1}^{N-1} W^{t-1}(I_t, \tau)\right)|^2 \\
+    = \sum_{k \neq 0} \frac{1}{N} \cdot |\sum_{t=0}^{N-1} W^t(I_t, \tau)|^2 = \sum_{k \neq 0} |\overline{I}|^2 = f_{obj}(\tau)
+    $$
+</div> 
+
+We've essentially created a link between our two optimization objectives, where we can choose either depending on our need for flexibility, computational constraints.
+
+## Conclusion
+
+We now have "pure" energy (magnitude) and phase "flavors" of our GCC-PHAT objective, obtainable by choosing spectral-weighting factors $\alpha\in\lbrace {0,1} \rbrace$ respectively, where we've seen that $\alpha=0$ gives us our previous variance optimization objective, and $\alpha=1$ the PHAT optimization objective (up to necessary interpolation/smoothing operations). Comparing these two objectives, the variance objective maximizes coherent energy, where an incorrect shift creates destructive interference. On the other hand, for the PHAT objective the phase component is used to align a sharp correlation peak, which is smoothed by the Fejér kernel.
+
+We can treat the first as a more "global" method, while the second is more "local". The need for a trade-off between these two comes up in the case of noisy signals, in which the additive nature of the Fourier transform causes both phase *and* magnitude information to be offset/randomized by the noisy component. It makes sense then in this case to utilize a mix of *both* when computing the ground truth shift. We'll make a comparison of the utility of these different objectives in the next blogpost, using a sample of clean/noisy image pairs.
+
+Until then!
+
+<!-- The weights then "boost" higher-magnitude frequency bins, which in turn have higher relative SNR, giving us 'more' information from the clean signal component. Note that intuitively this is a similar idea to that of the classical *Wiener filter*, where the latter estimates the clean vs. noisy signal components to 'hand-craft' weights per frequency bin[^1].   -->
+
+<!-- 
 ### Connecting the two optimization objectives
 Recall the previous frequency-domain objective (implemented with bilinear interpolation)
 <div> 
@@ -456,8 +483,8 @@ Now recall the duality
     $$
 </div>
 
-Meaning that we are replacing bilinear interpolation with its dual operator! Also note the difference in order of the low-pass filter, and the fact that we are optimizing over the signal *magnitude*, as opposed to *energy*. In other words, we see that these two objectives implement similar *ideas* by means of dual concepts between domains.
-
+Meaning that we are replacing bilinear interpolation with its dual operator! Also note the difference in order of the low-pass filter, and the fact that we are optimizing over the signal *magnitude*, as opposed to *energy*. In other words, we see that these two objectives implement similar *ideas* by means of dual concepts between domains. -->
+<!-- 
 ## Postlude: signal-processing vs. optimization approaches
 
 Having now established some kind of "equivalence" between our GCC-PHAT and previous optimization objectives, let's present a question: 
@@ -470,7 +497,7 @@ We attempt to address this at the moment from two different perspectives, though
 |--------|----------|------------------|
 | **Subpixel Alignment** | Requires fine-tuning or various interpolation techniques. | Optimizer and well-conditioned loss landscape handle automatically. |
 | **Computational Efficiency** | Need to sample the entire time-domain grid (IFFT). | Parseval's theorem allows computation in frequency domain, bypassing IFFT. Good initial estimates yield fewer iterations ($O(M)$ vs. $O(M\log{M})$). |
-
+ -->
 <!-- 
 ### Additional Considerations
 
@@ -482,10 +509,10 @@ We attempt to address this at the moment from two different perspectives, though
 - Combine both tools: obtain rough estimate via GCC-PHAT, then fine-tune with optimization (various optimization schemes have already been proposed) [^1]
 - **Note**: This approach is computationally more expensive than either method alone, and should thus be used judiciously based on specific requirements
  -->
-
+<!-- 
 We will compare these two approaches more concretely in the next blog-post, in which we also introduce the notion of *occlusion*, and examine its effect on the performances of both methods.
 
-Until then!
+Until then! -->
 
 ## Footnotes
 [^1]: We are in essence using a simple *heuristic* instead of hand-crafting bin weights. This idea pops up plenty in statistical signal-processing (see [this](https://en.wikipedia.org/wiki/Inverse-variance_weighting))
