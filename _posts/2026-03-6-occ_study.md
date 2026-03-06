@@ -48,6 +48,10 @@ Here is the architecture used for the classifier:
 
 Nothing exotic is happening here. This is a small convolutional network with pooling and a final linear classifier. The point is not to squeeze out state-of-the-art performance, but to probe a standard CNN in a controlled setting.
 
+The training dynamics look as expected: accuracy rises rapidly (until around 95%) while the validation loss falls and stabilizes after a few epochs.
+
+![val metrics](/assets/images/moving_mnist_metrics.png) 
+
 ---
 
 ## Occlusion models
@@ -68,7 +72,7 @@ The difference is immediately visible:
 Even when the overall coverage is matched, these masks do not remove information in the same way. Bernoulli leaves tiny holes everywhere. Perlin and triangular masks erase connected chunks. That distinction turns out to matter a lot.
 
 ---
-## A single example already tells the story
+## A visual example
 
 Before showing aggregate plots, it helps to look at one concrete sequence. In the following video, the same Moving MNIST digit is shown side by side under two different occlusions: Bernoulli on one side, Perlin-style on the other.
 
@@ -134,19 +138,10 @@ This plot is especially useful because it shows that robustness is not just abou
 
 ---
 
-
 ## Conclusion
 
-The interesting part is not that occlusion hurts (of course it does). The interesting part is that **random corruption is a poor proxy for real occlusion**.
+Occlusion does not just depend on **how much** information is removed, but **how it is removed**. Random pixel dropout spreads small gaps across the image, which a CNN can often tolerate because local evidence remains available. Structured occlusions, in contrast, remove coherent chunks of information and degrade the representation much more abruptly.
 
-A standard CNN is translation-equivariant, but it has no analogous mechanism for “occlusion equivariance”. It can absorb local corruption surprisingly well when the evidence is still distributed across the image. But when information disappears in structured chunks, the representation degrades much more abruptly.
+This highlights a limitation of common robustness benchmarks. Many rely on iid noise or dropout-style corruption, which does not reflect how occlusion typically appears in real scenes. As a result, a model can look robust under random masking while still failing under structured occlusion.
 
-That matters beyond toy digits. Many robustness benchmarks still rely heavily on iid masking, salt-and-pepper noise, or similar unstructured perturbations. Those perturbations are useful, but they do not fully capture what happens when an object is actually blocked by something coherent in the scene.
-
-The take-home message is simple:
-
-> Occlusion robustness depends not just on **how much** information is removed, but on **how that removal is organized in space**.
-
-That is why Bernoulli-style dropout can make a model look more robust than it really is. And it is why structured occluders are worth studying even in a tiny setting like Moving MNIST.
-
-For such a small experiment, I think that is already a pretty satisfying result.
+Even in a tiny setting like Moving MNIST, the distinction is clear: **geometry matters**.

@@ -114,9 +114,12 @@ compress_html:
 exclude: ["travis.sh", "Rakefile", "README.md", "Gemfile", "Gemfile.lock", "FAQ.md"]
 markdown: kramdown
 kramdown:
-  input: GFM
-  auto_ids: true
+  math_engine: mathjax
+  math_engine_opts:
+    preview: true
   syntax_highlighter: rouge
+  parse_block_html: true
+  parse_span_html: true
 
 repository: ikavodo/ikavodo.github.io
 future: true
