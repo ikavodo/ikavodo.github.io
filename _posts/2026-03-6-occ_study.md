@@ -90,17 +90,21 @@ But accuracy is not the whole story, so I also track the model’s probability e
 
 If the model assigns probability $p(y_{\mathrm{true}})$ to the correct class, then the **negative log-likelihood** is
 
-$$
-\mathrm{NLL} = -\log p(y_{\mathrm{true}}).
-$$
+<div>
+  $$
+  \mathrm{NLL} = -\log p(y_{\mathrm{true}}).
+  $$
+</div>
 
 Lower is better. NLL becomes large when the model is confidently wrong or simply fails to allocate much mass to the true class.
 
 The **Brier score** measures the squared error of the full probability vector against the one-hot label,
 
-$$
-\mathrm{Brier}(p,y) = \sum_i (p_i - y_i)^2,
-$$
+<div>
+  $$
+  \mathrm{Brier}(p,y) = \sum_i (p_i - y_i)^2,
+  $$
+</div>
 
 so it mixes together accuracy and probability quality.
 

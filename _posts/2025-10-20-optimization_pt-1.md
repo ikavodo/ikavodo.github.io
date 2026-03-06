@@ -37,7 +37,7 @@ The simplest such example is a *translation* model, equivalent to using one fing
 See this example for a synthetic 6DoF affine motion video featuring a moving soccerball-like object. Notice that it moves towards the bottom-right corner, rotating counter-clockwise and eventualy deforming into an elongated ellipsoid (shear is non-zero). 
 
 <video width="128" height="128" controls>
-  <source src="/assets/occ_motion.mp4" type="video/mp4">
+  <source src="/assets/videos/occ_motion.mp4" type="video/mp4">
 </video>
 
 
