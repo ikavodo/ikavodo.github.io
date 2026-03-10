@@ -5,9 +5,9 @@ date: 2025-11-25 18:00
 image: 
 headerImage: false
 tags:
-  - Computer Science
-  - Math
-  - Optimization
+- Computer Science
+- Math
+- Optimization
 star: true
 category: blog
 author: Ido Akov
@@ -30,16 +30,16 @@ import torch
 import matplotlib.pyplot as plt 
 
 def integrate_mean_by_roll(x: torch.Tensor, T: int, tau: int) -> torch.Tensor:
-    """
-    Build T frames by successively rolling x by j*tau (j=0..N-1),
-    then return the mean over frames (weighted=False).
-    NOTE: tau is integer; torch.roll is integer-shifted, circular.
-    """
-    L = x.numel()
-    acc = torch.zeros_like(x)
-    for j in range(T):
-        acc += torch.roll(x, shifts=(j * tau) % L, dims=0)
-    return acc / N
+"""
+Build T frames by successively rolling x by j*tau (j=0..N-1),
+then return the mean over frames (weighted=False).
+NOTE: tau is integer; torch.roll is integer-shifted, circular.
+"""
+L = x.numel()
+acc = torch.zeros_like(x)
+for j in range(T):
+    acc += torch.roll(x, shifts=(j * tau) % L, dims=0)
+return acc / N
 
 # Signal: rectangular pulse (Heaviside window)
 M = 256
@@ -60,8 +60,8 @@ plt.figure(figsize=(10, 5))
 idx = torch.arange(M) - M//2
 plot_bounds = slice(lower - width//2, len(idx)) 
 for tau in taus:
-    plt.plot(idx[plot_bounds], integrated[tau].numpy()[plot_bounds], 
-                     label=fr"$\tau = {tau}$")
+plt.plot(idx[plot_bounds], integrated[tau].numpy()[plot_bounds], 
+                 label=fr"$\tau = {tau}$")
 
 # (Optional) show original signal for reference (light dashed)
 plt.plot(idx[plot_bounds], x.numpy()[plot_bounds], '--', alpha=0.4, label="original x")
@@ -105,9 +105,9 @@ $$
 </div> 
 which is another rectangular pulse! Finally then we get
 <div>
-    $$ 
-    \overline{I}_{\tau =1}[x]\propto I[x] \star  h_{\tau =1}(x) = rect[x] \star rect[x] = tri[x]  
-    $$
+$$ 
+\overline{I}_{\tau =1}[x]\propto I[x] \star  h_{\tau =1}(x) = rect[x] \star rect[x] = tri[x]  
+$$
 </div> 
 
 Now that we understand how to think about 1D integration, let's move on to more interesting things, mainly the phase-correlation algorithm, and surprising connection to our optimization objective.
@@ -118,7 +118,7 @@ Now that we understand how to think about 1D integration, let's move on to more 
 The phase-correlation algorithm is a well-known tool in signal processing for computing translation between two images, where it is based on the very simple notion of a phase transform.
 
 Recall the duality
- 
+
 <div>
 $$x[n-n_0]\overset{\text{FT}}{\leftrightarrow}e^{-j\omega n_0}\cdot X(e^{j\omega})$$
 </div>
@@ -173,9 +173,9 @@ Where $\Delta n = n - n_0$.
 
 Is this a decent optimization objective? On the one hand plugging in $n=n_0$ we obtain a global maxima, via 
 <div>
-    $$
-    \frac{1}{N}\sum_{k=0}^{N-1}\cos{(\omega_k 0)} = \frac{1}{N}\sum_{k=0}^{N-1}1 \geq \sum_{k=0}^{N-1}\cos{(\omega_k \Delta n)}, n \neq n_0
-    $$
+$$
+\frac{1}{N}\sum_{k=0}^{N-1}\cos{(\omega_k 0)} = \frac{1}{N}\sum_{k=0}^{N-1}1 \geq \sum_{k=0}^{N-1}\cos{(\omega_k \Delta n)}, n \neq n_0
+$$
 </div>
 
 On the other hand, it is enough to confirm that
@@ -186,9 +186,9 @@ $$
 </div> 
 Where we 'centered' our signal to obtain the [Dirichlet kernel](https://en.wikipedia.org/wiki/Dirichlet_kernel) of order N. This can easily be factorized to
 <div>
-    $$
-    D_{N}(x)=\sum _{k'=-k_0}^{k_0}e^{jk'x}=\frac {\sin \left(\frac{Nx}{2}\right)}{\sin(\frac{x}{2})}
-    $$
+$$
+D_{N}(x)=\sum _{k'=-k_0}^{k_0}e^{jk'x}=\frac {\sin \left(\frac{Nx}{2}\right)}{\sin(\frac{x}{2})}
+$$
 </div>  
 Where the right-hand form becomes highly oscillatory as N grows, which is a big "no-no" for successful optimization. 
 
@@ -199,15 +199,15 @@ Given what we've learned about the importance of bilinear interpolation as an ef
 
 The [Fejér kernel](https://en.wikipedia.org/wiki/Fej%C3%A9r_kernel) is defined by 
 <div>
-    $$
-    F_{N}(x)=\frac {1}{N}\sum _{k=0}^{N-1}{D_{k}(x)}
-    $$
+$$
+F_{N}(x)=\frac {1}{N}\sum _{k=0}^{N-1}{D_{k}(x)}
+$$
 </div>
 Meaning that the Nth Fejér kernel is built by *integrating* and smoothing the first N Dirichlet kernels. We can think of this operation as a 'summation over summations' (recall the definition of a Dirichlet kernel as a finite geometric series). Plugging in the explicit Dirichlet kernel formula (and skipping some math on the way) gives us the following explicit formula for a kernel of order N  
 <div>
-    $$
-    F_{N}(x)={\frac {1}{N}}\left({\frac {\sin({\frac {Nx}{2}})}{\sin({\frac {x}{2}})}}\right)^{2} \overset{\text{FT}}{\longleftrightarrow} \left(1-{\frac {|k|}{N}}_{|k|< N-1}\right) 
-    $$
+$$
+F_{N}(x)={\frac {1}{N}}\left({\frac {\sin({\frac {Nx}{2}})}{\sin({\frac {x}{2}})}}\right)^{2} \overset{\text{FT}}{\longleftrightarrow} \left(1-{\frac {|k|}{N}}_{|k|< N-1}\right) 
+$$
 </div>
 meaning that the frequency representation of the Fejér kernel results in *triangular* weights, which we previously saw in the time-domain as a triangular kernel! Duality once again. 
 
@@ -218,82 +218,82 @@ We understand then that the kernel is *positive*, and its corresponding frequenc
 
 Let's show with some code that the Fejér kernel objective has better convergence properties than that of the Dirichlet kernel. Note that we use the frequency-domain representation of the kernel in our implementation.
 
- ```python
+```python
 import math
 import torch
 import matplotlib.pyplot as plt
 
 
 def fejer_weights(C: torch.Tensor):
-    """
-    Fejér-type weights for a 1D spectrum C_alpha of shape (K,).
-    Highest weight at DC (index 0), decaying linearly to ~0 at the highest index.
-    """
-    K = C.shape[0]
-    device = C.device
-    k = torch.arange(K, device=device)
-    # normalized distance from DC [0..1]
-    return 1.0 - k / (K - 1 + 1e-8)
+"""
+Fejér-type weights for a 1D spectrum C_alpha of shape (K,).
+Highest weight at DC (index 0), decaying linearly to ~0 at the highest index.
+"""
+K = C.shape[0]
+device = C.device
+k = torch.arange(K, device=device)
+# normalized distance from DC [0..1]
+return 1.0 - k / (K - 1 + 1e-8)
 
 def phat_objective(x1: torch.Tensor,
-                              x2: torch.Tensor,
-                              tau: torch.Tensor,
-                              exclude_dc: bool = True,
-                              method: str = "phat",
-                             ) -> torch.Tensor:
-    """
-    f(tau) = Re{ mean_k [ C_normed[k] * exp(-i*ω_k*tau) ] }   (method="phat")
-    or a Fejér-weighted surrogate (method="fejer").
-    We maximize f(tau) over τ.
-    """
-    assert x1.shape == x2.shape and x1.ndim == 1
+                          x2: torch.Tensor,
+                          tau: torch.Tensor,
+                          exclude_dc: bool = True,
+                          method: str = "phat",
+                         ) -> torch.Tensor:
+"""
+f(tau) = Re{ mean_k [ C_normed[k] * exp(-i*ω_k*tau) ] }   (method="phat")
+or a Fejér-weighted surrogate (method="fejer").
+We maximize f(tau) over τ.
+"""
+assert x1.shape == x2.shape and x1.ndim == 1
+
+M = x1.shape[0]
+k = torch.arange(M, dtype=x1.dtype, device=x1.device)
+omega = 2 * math.pi * k / M
+
+X1 = torch.fft.fft(x1)
+X2 = torch.fft.fft(x2)
+CPS = X1 * torch.conj(X2)
+mag = torch.clamp(torch.abs(CPS), min=1e-12)
+C_normed = CPS / mag     
+
+if exclude_dc:
+    # ignore DC energy component
+    C_normed = C_normed[1:]
+    omega   = omega[1:]
+
+C_shifted = C_normed * torch.exp(-1j * omega * tau)  # minus → peak at true shift 
+if method == "fejer":
+    # compute Fejer weights in frequency domain
+    weights = fejer_weights(C_shifted)
+    C_shifted *= weights
     
-    M = x1.shape[0]
-    k = torch.arange(M, dtype=x1.dtype, device=x1.device)
-    omega = 2 * math.pi * k / M
-
-    X1 = torch.fft.fft(x1)
-    X2 = torch.fft.fft(x2)
-    CPS = X1 * torch.conj(X2)
-    mag = torch.clamp(torch.abs(CPS), min=1e-12)
-    C_normed = CPS / mag     
-
-    if exclude_dc:
-        # ignore DC energy component
-        C_normed = C_normed[1:]
-        omega   = omega[1:]
-
-    C_shifted = C_normed * torch.exp(-1j * omega * tau)  # minus → peak at true shift 
-    if method == "fejer":
-        # compute Fejer weights in frequency domain
-        weights = fejer_weights(C_shifted)
-        C_shifted *= weights
-        
-    dirichlet = torch.real(C_shifted)
-    return dirichlet.mean()
+dirichlet = torch.real(C_shifted)
+return dirichlet.mean()
 
 # -----------------------------
 # Inspect objective landscape
 # -----------------------------
 def plot_kernel_comparison(ax, taus_grid, x1, x2):
-    """Plot Dirichlet vs Fejér kernel comparison on single axes with alpha=1, no interpolation"""
-    dirichlet_vals = torch.tensor([float(phat_objective(x1, x2, t, method="dirichlet").detach())
-                                   for t in taus_grid])
-    ax.plot(taus_grid.numpy(), dirichlet_vals.numpy(), label='Dirichlet Kernel', linewidth=3)
-    
-    fejer_vals = torch.tensor([float(phat_objective(x1, x2, t, method="fejer").detach())
-                                   for t in taus_grid])
-    ax.plot(taus_grid.numpy(), fejer_vals.numpy(), label='Fejér Kernel', linewidth=3)
-    
-    # Add true shift line
-    ax.axvline(0, linestyle="--", color='red', label="True Shift τ*", alpha=0.8, linewidth=2)
-    
-    ax.set_xlabel("Time Shift τ (samples)", fontsize=12)
-    ax.set_ylabel("Objective Function f(τ)", fontsize=12)
-    ax.set_title("Objective comparison", fontsize=14, fontweight='bold')
-    ax.grid(True, alpha=0.3)
-    ax.legend(fontsize=11)
-    
+"""Plot Dirichlet vs Fejér kernel comparison on single axes with alpha=1, no interpolation"""
+dirichlet_vals = torch.tensor([float(phat_objective(x1, x2, t, method="dirichlet").detach())
+                               for t in taus_grid])
+ax.plot(taus_grid.numpy(), dirichlet_vals.numpy(), label='Dirichlet Kernel', linewidth=3)
+
+fejer_vals = torch.tensor([float(phat_objective(x1, x2, t, method="fejer").detach())
+                               for t in taus_grid])
+ax.plot(taus_grid.numpy(), fejer_vals.numpy(), label='Fejér Kernel', linewidth=3)
+
+# Add true shift line
+ax.axvline(0, linestyle="--", color='red', label="True Shift τ*", alpha=0.8, linewidth=2)
+
+ax.set_xlabel("Time Shift τ (samples)", fontsize=12)
+ax.set_ylabel("Objective Function f(τ)", fontsize=12)
+ax.set_title("Objective comparison", fontsize=14, fontweight='bold')
+ax.grid(True, alpha=0.3)
+ax.legend(fontsize=11)
+
 # ground-truth shift of 0 for simple plotting
 x_shifted=x
 # Create plot
@@ -303,7 +303,7 @@ taus_grid = torch.linspace(-6.0, 6.0, 201, dtype=torch.float64)  # Higher resolu
 plot_kernel_comparison_single(ax, taus_grid, x1, x2)
 plt.tight_layout()
 plt.show()
- ```
+```
 
 ![objective kernels](/assets/phat_obj.png)  
 While the Fejér kernel improves on the Dirichlet, *it is not a sufficient optimization objective in itself* (what happens if we generate an initial shift which is arbitrarily far from the ground-truth shift?). We can assume then that phase-information in itself is most probably insufficient for establishing a *useful* optimization objective. 
@@ -327,7 +327,7 @@ And the rest is simply the inverse Fourier Transform of the spectrally-weighted 
 To obtain our original PHAT formulation we can set "normalized" spectral weighting via
 $ \Psi(f) = \frac{1}{\|G_{xy}(f)\|}$. Now can we "tweak" this in a way which gives us more flexibility? The following idea gives us a *family* of such filters:
 <div>
-    $$ \Psi(f) = \frac{1}{\|G_{xy}(f)\|^\alpha}, \quad \alpha \in [0, 1]$$.
+$$ \Psi(f) = \frac{1}{\|G_{xy}(f)\|^\alpha}, \quad \alpha \in [0, 1]$$.
 </div> 
 For $ \alpha =1$ we get our original PHAT formulation, and for $ \alpha =0$ we have the original cross-power spectrum $G_{xy}$. We call this variant then *GCC-PHAT*, on account of its generating a whole "spectrum" between the phase-transformation and cross-power spectrum variants.
 
@@ -336,30 +336,30 @@ Let's see the effect of varying this alpha on our optimization objective, slight
 ```python
 
 def gcc_phat_objective(x1: torch.Tensor,
-                              ... # as previously
-                              alpha : float = 1.0
-                             ) -> torch.Tensor:
-    """
-    f(tau) = Re{ mean_k [ C_normed[k] * exp(-i*ω_k*tau) ] }   (method="phat")
-    or a Fejér-weighted surrogate (method="fejer").
-    We maximize f(tau) over τ.
-    """
-    # as previously
-    ...
-    mag = torch.clamp(torch.abs(CPS), min=1e-12) ** alpha
-    ... # as previously
-    return dirichlet.mean()
-    
+                          ... # as previously
+                          alpha : float = 1.0
+                         ) -> torch.Tensor:
+"""
+f(tau) = Re{ mean_k [ C_normed[k] * exp(-i*ω_k*tau) ] }   (method="phat")
+or a Fejér-weighted surrogate (method="fejer").
+We maximize f(tau) over τ.
+"""
+# as previously
+...
+mag = torch.clamp(torch.abs(CPS), min=1e-12) ** alpha
+... # as previously
+return dirichlet.mean()
+
 
 def plot_kernel_comparison(ax, taus_grid, x1, x2, alpha=1):
-    """Plot Dirichlet vs Fejér kernel comparison on single axes with alpha=1, no interpolation"""
-    dirichlet_vals = torch.tensor([float(gcc_phat_objective(x1, x2, t, method="dirichlet", alpha=alpha).detach())
-                                   for t in taus_grid])
-    ax.plot(taus_grid.numpy(), dirichlet_vals.numpy(), label='Dirichlet Kernel', linewidth=3)
-    
-    fejer_vals = torch.tensor([float(gcc_phat_objective(x1, x2, t, method="fejer", alpha=alpha).detach())
-                                   for t in taus_grid])
-    ... # as previously
+"""Plot Dirichlet vs Fejér kernel comparison on single axes with alpha=1, no interpolation"""
+dirichlet_vals = torch.tensor([float(gcc_phat_objective(x1, x2, t, method="dirichlet", alpha=alpha).detach())
+                               for t in taus_grid])
+ax.plot(taus_grid.numpy(), dirichlet_vals.numpy(), label='Dirichlet Kernel', linewidth=3)
+
+fejer_vals = torch.tensor([float(gcc_phat_objective(x1, x2, t, method="fejer", alpha=alpha).detach())
+                               for t in taus_grid])
+... # as previously
 
 # Create plot
 plt.figure(figsize=(14, 8))
@@ -368,7 +368,7 @@ taus_grid = torch.linspace(-6.0, 6.0, 201, dtype=torch.float64)  # Higher resolu
 plot_kernel_comparison(ax, taus_grid, x1, x2, alpha=0.7)
 plt.tight_layout()
 plt.show()
- ```
+```
 
 ![objective kernels alpha](/assets/gcc_phat_obj.png)  
 
@@ -390,13 +390,13 @@ I_{even} = \frac{2}{N}\sum_{t=2m}^{N-1} W^t(I_t, \tau) = \frac{2}{N}\sum_{t=2m}^
 $$
 </div>
 where $\phi = \frac{\tau}{W}, \quad \Delta \phi = \frac{\tau - \tau^*}{W}$ and
-   $ \mathcal{H_{\frac{N}{2}}}(2\phi)$ is a moving-average filter of order $\frac{N}{2}$ (see [previous blog-post](https://ikavodo.github.io/optimization_pt-3/)) with frequency responses parameterized by $\phi$.
+$ \mathcal{H_{\frac{N}{2}}}(2\phi)$ is a moving-average filter of order $\frac{N}{2}$ (see [previous blog-post](https://ikavodo.github.io/optimization_pt-3/)) with frequency responses parameterized by $\phi$.
 
 $I_{odd}$ is constructed similarly over frames with odd time-steps, with the only exception 
 <div>
-    $$
-    I_{odd} = \frac{2}{N}\sum_{t=2m+1}^{N-1} W^{\bf{t-1}}(I_t, \tau) = ...
-    $$
+$$
+I_{odd} = \frac{2}{N}\sum_{t=2m+1}^{N-1} W^{\bf{t-1}}(I_t, \tau) = ...
+$$
 </div> 
 Meaning that all odd-frames are translated back relatively to the *first odd frame* (why we do it this way will become clear soon).
 
@@ -404,40 +404,40 @@ Note that of the two moving-average filters derived in the equation, $\mathcal{H
 
 Now coming back to our integrated images, note that 
 <div>
-    $$
-    I_{even} = e^{-j\omega \phi^*} \cdot I_{odd}
-    $$
+$$
+I_{even} = e^{-j\omega \phi^*} \cdot I_{odd}
+$$
 </div>
 Where $e^{-j\omega \phi^*}$ is a ground-truth phase shift. 
 
 From here on computing GCC-PHAT is quite straightforward:  
 
 <div>
-    $$
-    \frac{I_{odd} \cdot \overline{I_{even}}}{|I_{odd} \cdot \overline{I_{even}}|^\alpha} = \frac{e^{-j\omega \phi^*} I_{even} \cdot \overline{I_{even}}}{|e^{-j\omega \phi^*} I_{even} \cdot \overline{I_{even}}|^\alpha} = \frac{ e^{-j\omega \phi^*}|I_{even}|^2}{|I_{even}|^{2\alpha}} =  |I_{even}|^{2(1-\alpha)}e^{-j\omega \phi^*} 
-    $$
+$$
+\frac{I_{odd} \cdot \overline{I_{even}}}{|I_{odd} \cdot \overline{I_{even}}|^\alpha} = \frac{e^{-j\omega \phi^*} I_{even} \cdot \overline{I_{even}}}{|e^{-j\omega \phi^*} I_{even} \cdot \overline{I_{even}}|^\alpha} = \frac{ e^{-j\omega \phi^*}|I_{even}|^2}{|I_{even}|^{2\alpha}} =  |I_{even}|^{2(1-\alpha)}e^{-j\omega \phi^*} 
+$$
 </div> 
 Let's plug in different values for $\alpha$! Starting with $\alpha=0$ we get
 
 <div>
-    $$
-    |I_{even}|^2\cdot e^{-j\omega \phi^*} = |\mathcal{H_{\frac{N}{2}}}(\Delta \phi) \cdot \mathcal{F} \lbrace I_0 \rbrace + \mathcal{H_{\frac{N}{2}}}(\phi) \cdot \mathcal{F} \lbrace V \rbrace|^2 * e^{-j\omega \phi^*}
-    $$
+$$
+|I_{even}|^2\cdot e^{-j\omega \phi^*} = |\mathcal{H_{\frac{N}{2}}}(\Delta \phi) \cdot \mathcal{F} \lbrace I_0 \rbrace + \mathcal{H_{\frac{N}{2}}}(\phi) \cdot \mathcal{F} \lbrace V \rbrace|^2 * e^{-j\omega \phi^*}
+$$
 </div>
 Note that optimizing over the magnitude of this signal 
 <div>
-    $$
-    \sum_{k \neq 0} ||\mathcal{H_{\frac{N}{2}}}(\Delta \phi) \cdot \mathcal{F} \lbrace I_0 \rbrace + \mathcal{H_{\frac{N}{2}}}(\phi) \cdot \mathcal{F} \lbrace V \rbrace|^2 * e^{-j\omega \phi^*}| = \sum_{k \neq 0} |\mathcal{H_{\frac{N}{2}}}(\Delta \phi) \cdot \mathcal{F} \lbrace I_0 \rbrace + \mathcal{H_{\frac{N}{2}}}(\phi) \cdot \mathcal{F} \lbrace V \rbrace|^2
-    $$
+$$
+\sum_{k \neq 0} ||\mathcal{H_{\frac{N}{2}}}(\Delta \phi) \cdot \mathcal{F} \lbrace I_0 \rbrace + \mathcal{H_{\frac{N}{2}}}(\phi) \cdot \mathcal{F} \lbrace V \rbrace|^2 * e^{-j\omega \phi^*}| = \sum_{k \neq 0} |\mathcal{H_{\frac{N}{2}}}(\Delta \phi) \cdot \mathcal{F} \lbrace I_0 \rbrace + \mathcal{H_{\frac{N}{2}}}(\phi) \cdot \mathcal{F} \lbrace V \rbrace|^2
+$$
 </div>
 is equivalent to our original optimization objective, up to the order of the moving average filter! It remains to compare these two (next blogpost). 
 
 As N grows we have  
 <div>
-    $$
-    \lim_{N \to +\infty} |\mathcal{H_{\frac{N}{2}}}(\Delta \phi) \cdot \mathcal{F} \lbrace I_0 \rbrace + \mathcal{H_{\frac{N}{2}}}(\phi) \cdot \mathcal{F} \lbrace V \rbrace|^2 * e^{-j\omega \phi^*} \approx \lim_{N \to +\infty} |\mathcal{H_{\frac{N}{2}}}(\Delta \phi) \cdot \mathcal{F} \lbrace I_0 \rbrace + \frac{\mathcal{F} \lbrace V \rbrace}{\sqrt{\frac{N}{2}}}| * e^{-j\omega \phi} \\
-    = |\mathcal{H_\infty}(\Delta \phi) \cdot \mathcal{F} \lbrace I_0 \rbrace| * e^{-j\omega \phi}
-    $$
+$$
+\lim_{N \to +\infty} |\mathcal{H_{\frac{N}{2}}}(\Delta \phi) \cdot \mathcal{F} \lbrace I_0 \rbrace + \mathcal{H_{\frac{N}{2}}}(\phi) \cdot \mathcal{F} \lbrace V \rbrace|^2 * e^{-j\omega \phi^*} \approx \lim_{N \to +\infty} |\mathcal{H_{\frac{N}{2}}}(\Delta \phi) \cdot \mathcal{F} \lbrace I_0 \rbrace + \frac{\mathcal{F} \lbrace V \rbrace}{\sqrt{\frac{N}{2}}}| * e^{-j\omega \phi} \\
+= |\mathcal{H_\infty}(\Delta \phi) \cdot \mathcal{F} \lbrace I_0 \rbrace| * e^{-j\omega \phi}
+$$
 </div>
 Using the fact that the moving-average filter reduces noise by approximately the square-root of its order (see explanation elsewhere), meaning that the effect of the noise-component becomes negligable compared to that of the signal. Good news for us!
 
@@ -445,10 +445,10 @@ Using the fact that the moving-average filter reduces noise by approximately the
 
 We can "revert" our GCC-PHAT objective into the *exact* energy (variance) objective by computing the integrated image from integrated pairs by
 <div>
-    $$
-    \sum_{k \neq 0} |\frac{I_{even} + e^{-j\omega \phi} \cdot I_{odd}}{2}|^2 = \sum_{k \neq 0}  |\frac{1}{N}  \cdot \left( \sum_{t=2m}^{N-1} W^t(I_t, \tau) + e^{-j\omega \phi} \cdot \sum_{t=2m+1}^{N-1} W^{t-1}(I_t, \tau)\right)|^2 \\
-    = \sum_{k \neq 0} \frac{1}{N} \cdot |\sum_{t=0}^{N-1} W^t(I_t, \tau)|^2 = \sum_{k \neq 0} |\overline{I}|^2 = f_{obj}(\tau)
-    $$
+$$
+\sum_{k \neq 0} |\frac{I_{even} + e^{-j\omega \phi} \cdot I_{odd}}{2}|^2 = \sum_{k \neq 0}  |\frac{1}{N}  \cdot \left( \sum_{t=2m}^{N-1} W^t(I_t, \tau) + e^{-j\omega \phi} \cdot \sum_{t=2m+1}^{N-1} W^{t-1}(I_t, \tau)\right)|^2 \\
+= \sum_{k \neq 0} \frac{1}{N} \cdot |\sum_{t=0}^{N-1} W^t(I_t, \tau)|^2 = \sum_{k \neq 0} |\overline{I}|^2 = f_{obj}(\tau)
+$$
 </div> 
 
 We've essentially created a link between our two optimization objectives, where we can choose to branch out to either from some intermediate computation, depending on our need for flexibility, computational constraints, etc...
@@ -488,9 +488,9 @@ $$
 
 Now recall the duality 
 <div>
-    $$
-    {\frac {1}{N}}\left({\frac {\sin({\frac {Nx}{2}})}{\sin({\frac {x}{2}})}}\right)^{2} \overset{\text{FT}}{\longleftrightarrow} \left(1-{\frac {|k|}{N}}_{|k|< N-1}\right) 
-    $$
+$$
+{\frac {1}{N}}\left({\frac {\sin({\frac {Nx}{2}})}{\sin({\frac {x}{2}})}}\right)^{2} \overset{\text{FT}}{\longleftrightarrow} \left(1-{\frac {|k|}{N}}_{|k|< N-1}\right) 
+$$
 </div>
 
 Meaning that we are replacing bilinear interpolation with its dual operator! Also note the difference in order of the low-pass filter, and the fact that we are optimizing over the signal *magnitude*, as opposed to *energy*. In other words, we see that these two objectives implement similar *ideas* by means of dual concepts between domains. -->
@@ -507,7 +507,7 @@ We attempt to address this at the moment from two different perspectives, though
 |--------|----------|------------------|
 | **Subpixel Alignment** | Requires fine-tuning or various interpolation techniques. | Optimizer and well-conditioned loss landscape handle automatically. |
 | **Computational Efficiency** | Need to sample the entire time-domain grid (IFFT). | Parseval's theorem allows computation in frequency domain, bypassing IFFT. Good initial estimates yield fewer iterations ($O(M)$ vs. $O(M\log{M})$). |
- -->
+-->
 <!-- 
 ### Additional Considerations
 
@@ -518,7 +518,7 @@ We attempt to address this at the moment from two different perspectives, though
 **Hybrid Approach**:
 - Combine both tools: obtain rough estimate via GCC-PHAT, then fine-tune with optimization (various optimization schemes have already been proposed) [^1]
 - **Note**: This approach is computationally more expensive than either method alone, and should thus be used judiciously based on specific requirements
- -->
+-->
 <!-- 
 We will compare these two approaches more concretely in the next blog-post, in which we also introduce the notion of *occlusion*, and examine its effect on the performances of both methods.
 

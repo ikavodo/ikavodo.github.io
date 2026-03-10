@@ -118,11 +118,11 @@ $$
 ### Step 5 - Optimize over motion parameters
 Solve for 
 <div>
-    $$
+$$
     \theta^\star =
 \arg\max_{\theta}\;
 f_{\text{obj}}(I_0,\dots,I_{T-1}, \theta)
-    $$
+$$
 </div>
  using a numerical optimization method (e.g., gradient ascent/descent), with backpropagation through the warp operator $W$, updating $\theta$ at each iteration. 
 

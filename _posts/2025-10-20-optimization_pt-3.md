@@ -5,33 +5,33 @@ date: 2025-11-14 14:00
 image: 
 headerImage: false
 tags:
-  - Computer Science
-  - Math
-  - Optimization
+- Computer Science
+- Math
+- Optimization
 star: true
 category: blog
 author: Ido Akov
 description: "Optimization"
 ---
 This blog-post is a direct continuation of the [previous one](https://ikavodo.github.io/optimization_pt-2/).
- 
+
 ## Fourier-domain optimization (continued)
 Recall that we are formulating our optimization objective in the Fourier-domain, the motivations for which will hopefully be made clearer in the close future. So far we've seen that a Fourier-domain implementation is possibly *faster* than a spatial-domain one, depending on our exact objective formulation, inputs, etc... In this current blog-post we will also obtain some necessary intuition about the *nature* of our optimization task, through its Fourier-domain interpretation.
 
 Just to remind, our Fourier-domain objective formulation is:
 
 <div>
-   $$
+$$
 \mathcal{F} \lbrace {f_{\text{obj}}} \rbrace = \sum_{(m, n) \neq (0, 0)} |\mathcal{F}\lbrace \overline{I} \rbrace (m, n)|^2 
 $$
 </div> 
 where 
 <div>
-    $$
-    \mathcal{F}\lbrace \overline{I} \rbrace = 
-    \mathcal{F} \lbrace I \rbrace \cdot \mathcal{H_T}(\Delta \phi), \quad \mathcal{H_T}(\Delta \phi) = \frac{1-e^{-j\omega T \Delta\phi}}{T(1-e^{-j\omega\Delta\phi})}
-    $$
- </div>
+$$
+\mathcal{F}\lbrace \overline{I} \rbrace = 
+\mathcal{F} \lbrace I \rbrace \cdot \mathcal{H_T}(\Delta \phi), \quad \mathcal{H_T}(\Delta \phi) = \frac{1-e^{-j\omega T \Delta\phi}}{T(1-e^{-j\omega\Delta\phi})}
+$$
+</div>
 Where $\mathcal{H_T}(\Delta \phi)$ is known as a *moving-average filter* of order T. We will learn more about the nature of this filter in this current blog-post, as well as why it is *insufficient* in itself for successful Fourier-domain optimization.
 
 ### First optimization trial (naive)
@@ -42,55 +42,55 @@ We must take this into account then in our code-implementation, more specificall
 ```python
 
 def fourier_pipeline_video(frames: torch.Tensor, shifts: torch.Tensor,
-                            fourier_input=False):
-    """
-    Fully differentiable Fourier-domain warping and integration.
-    Args:
-        frames: (B, T, H, W) spatial frames
-        shifts: (B, 2) shift vector per batch
-    Returns:
-        integrated_fft: (B, H, W) integrated FFT
-        total_power: (B,) variance-like scalar
-    """
+                        fourier_input=False):
+"""
+Fully differentiable Fourier-domain warping and integration.
+Args:
+    frames: (B, T, H, W) spatial frames
+    shifts: (B, 2) shift vector per batch
+Returns:
+    integrated_fft: (B, H, W) integrated FFT
+    total_power: (B,) variance-like scalar
+"""
+
+B, T, H, W = frames.shape
+
+if not fourier_input:
+    # frames_windowed = apply_spatial_window(frames)
+    X = torch.fft.fft2(frames, norm='forward', dim=(-2, -1))
+else:
+    X = frames
     
-    B, T, H, W = frames.shape
-    
-    if not fourier_input:
-        # frames_windowed = apply_spatial_window(frames)
-        X = torch.fft.fft2(frames, norm='forward', dim=(-2, -1))
-    else:
-        X = frames
-        
-    # Frequency grids
-    v, u = torch.meshgrid(
-        torch.arange(H, device=frames.device, dtype=X.real.dtype),
-        torch.arange(W, device=frames.device, dtype=X.real.dtype),
-        indexing='ij'
-    )
+# Frequency grids
+v, u = torch.meshgrid(
+    torch.arange(H, device=frames.device, dtype=X.real.dtype),
+    torch.arange(W, device=frames.device, dtype=X.real.dtype),
+    indexing='ij'
+)
 
-    shifts_exp = shifts.view(B, 1, 1, 2)  # (B,1,1,2)
-    
-    # Correct Fourier normalization: dx along width (u), dy along height (v)
-    omega = (u.unsqueeze(0) * shifts_exp[..., 0] / W + v.unsqueeze(0) * shifts_exp[..., 1] / H)  # (B,H,W)
-    omega = omega.unsqueeze(1)  # (B,1,H,W)
-    
-    base_phase = torch.exp(-2j * torch.pi * omega)
+shifts_exp = shifts.view(B, 1, 1, 2)  # (B,1,1,2)
 
-    t = torch.arange(T, device=frames.device, dtype=X.real.dtype).view(1, T, 1, 1)
-    phase_shifts = (base_phase * (1 - base_alpha)) ** t if weighted else base_phase ** t   # (B,T,H,W)
+# Correct Fourier normalization: dx along width (u), dy along height (v)
+omega = (u.unsqueeze(0) * shifts_exp[..., 0] / W + v.unsqueeze(0) * shifts_exp[..., 1] / H)  # (B,H,W)
+omega = omega.unsqueeze(1)  # (B,1,H,W)
 
-    # Apply phase shifts
-    shifted = X * phase_shifts  # (B,T,H,W)
+base_phase = torch.exp(-2j * torch.pi * omega)
 
-    # Integrate along T
-    integrated_fft = shifted.sum(dim=1) / T
+t = torch.arange(T, device=frames.device, dtype=X.real.dtype).view(1, T, 1, 1)
+phase_shifts = (base_phase * (1 - base_alpha)) ** t if weighted else base_phase ** t   # (B,T,H,W)
 
-    # Compute variance
-    mag2 = integrated_fft.real ** 2 + integrated_fft.imag ** 2
-    dc_power = mag2[..., 0, 0]
-    variance_fft = mag2.sum(dim=(-2, -1)) - dc_power
+# Apply phase shifts
+shifted = X * phase_shifts  # (B,T,H,W)
 
-    return integrated_fft, variance_fft
+# Integrate along T
+integrated_fft = shifted.sum(dim=1) / T
+
+# Compute variance
+mag2 = integrated_fft.real ** 2 + integrated_fft.imag ** 2
+dc_power = mag2[..., 0, 0]
+variance_fft = mag2.sum(dim=(-2, -1)) - dc_power
+
+return integrated_fft, variance_fft
 
 ```
 Note that the spatial pipeline can already deal with video input (see [first blogpost in the series](https://ikavodo.github.io/optimization_pt-1/)).
@@ -107,107 +107,107 @@ fourier_wrapper = lambda videos, shifts, weighted: fourier_pipeline_video(videos
 spatial_wrapper = lambda videos, shifts, weighted: spatial_pipeline(videos, videos.shape[1], shifts, weighted=weighted)
 
 def compute_motion(eval_fn, videos, max_steps=400, thresh=SUCCESS_CRIT, num_trials=T, verbose=False):
-    """
-    Compute motion via optimization over videos using eval_fn (spatial/fourier pipeline). 
-    Keep track of convergence statistics for later.
-    """
-    def initialize_shifts(n_trial):
-        # For reproducibility
-        torch.manual_seed(n_trial)
-        # Helper: generate initial shifts for optimization randomly
-        init_shifts = (torch.rand(2*B).reshape(B,2) * 2 - 1) * (B*SHIFT_SCALE)  
-        return init_shifts.clone().detach().requires_grad_(True)
+"""
+Compute motion via optimization over videos using eval_fn (spatial/fourier pipeline). 
+Keep track of convergence statistics for later.
+"""
+def initialize_shifts(n_trial):
+    # For reproducibility
+    torch.manual_seed(n_trial)
+    # Helper: generate initial shifts for optimization randomly
+    init_shifts = (torch.rand(2*B).reshape(B,2) * 2 - 1) * (B*SHIFT_SCALE)  
+    return init_shifts.clone().detach().requires_grad_(True)
 
-    all_trials_results = []
-    
-    for trial in range(num_trials):
-        shifts = initialize_shifts(trial)
-        # Optimizer and scheduler
-        optimizer = torch.optim.Adam([shifts], lr=0.5)
-        scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', patience=50, factor=0.5)
+all_trials_results = []
 
-        all_shifts = []
-        deviations = []
+for trial in range(num_trials):
+    shifts = initialize_shifts(trial)
+    # Optimizer and scheduler
+    optimizer = torch.optim.Adam([shifts], lr=0.5)
+    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', patience=50, factor=0.5)
 
-        converged = False
+    all_shifts = []
+    deviations = []
 
-        for step in range(max_steps):
-            optimizer.zero_grad()
-            
-            # Forward pass
-            _, _, var_batches = fourier_wrapper(videos, shifts) if eval_fn == "fourier" \
-                                else spatial_wrapper(videos, shifts)
-            # Stochastic loss
-            loss = -var_batches.mean()
-            loss.backward()
-            optimizer.step()
-            scheduler.step(loss)
+    converged = False
 
-            # Track deviation
-            current_shifts = shifts.detach().clone()
-            deviation = torch.norm(current_shifts - GT_SHIFTS).item()
-            all_shifts.append(current_shifts)
-            deviations.append(deviation)
+    for step in range(max_steps):
+        optimizer.zero_grad()
+        
+        # Forward pass
+        _, _, var_batches = fourier_wrapper(videos, shifts) if eval_fn == "fourier" \
+                            else spatial_wrapper(videos, shifts)
+        # Stochastic loss
+        loss = -var_batches.mean()
+        loss.backward()
+        optimizer.step()
+        scheduler.step(loss)
 
-            if deviation < thresh and step > 100:
-                converged = True
-                # print(f"Converged at step {step}")
-                break
+        # Track deviation
+        current_shifts = shifts.detach().clone()
+        deviation = torch.norm(current_shifts - GT_SHIFTS).item()
+        all_shifts.append(current_shifts)
+        deviations.append(deviation)
 
-        trial_result = {
-            'final_shifts': all_shifts[-1],
-            'final_deviation': deviations[-1],
-            'converged': converged,
-            'steps': step + 1,
-            'all_shifts': all_shifts,
-            'deviations': deviations
-        }
-        all_trials_results.append(trial_result)
+        if deviation < thresh and step > 100:
+            converged = True
+            # print(f"Converged at step {step}")
+            break
 
-    # Count number of successful convergences
-    num_converged = sum(1 for r in all_trials_results if r['converged'])
-    if verbose: print(f"Total successful convergences: {num_converged}/{num_trials}")
+    trial_result = {
+        'final_shifts': all_shifts[-1],
+        'final_deviation': deviations[-1],
+        'converged': converged,
+        'steps': step + 1,
+        'all_shifts': all_shifts,
+        'deviations': deviations
+    }
+    all_trials_results.append(trial_result)
 
-    return all_trials_results, num_converged
+# Count number of successful convergences
+num_converged = sum(1 for r in all_trials_results if r['converged'])
+if verbose: print(f"Total successful convergences: {num_converged}/{num_trials}")
+
+return all_trials_results, num_converged
 
 
 def compare_configs(configurations, inputs, num_trials=10, verbose=True, **kwargs):
-    """
-    Experiment setup: given input configurations of form (eval_fn="fourier/spatial", weighted="True/False"), evaluate how well 
-    motion computation works for each such configuration 
-    """
-    comparison_results = {}
-    success_counts = {}
-    input_spatial, input_fourier = inputs
+"""
+Experiment setup: given input configurations of form (eval_fn="fourier/spatial", weighted="True/False"), evaluate how well 
+motion computation works for each such configuration 
+"""
+comparison_results = {}
+success_counts = {}
+input_spatial, input_fourier = inputs
 
-    if verbose: 
-        # Give some initial information 
-        print(f"GT shifts: {GT_SHIFTS}") 
+if verbose: 
+    # Give some initial information 
+    print(f"GT shifts: {GT_SHIFTS}") 
 
-    for config in configurations:
-        eval_fn = config
-        videos = input_spatial.clone().detach().requires_grad_(True) if eval_fn=="spatial" else \
-                input_fourier.clone().detach().requires_grad_(True)
-        config_name = f"{eval_fn}"
-        if verbose: print(f"\n=== Running {config_name} pipeline ===")
-        results, num_converged = compute_motion(
-                eval_fn=eval_fn,
-                videos=videos,
-                num_trials=num_trials,
-                verbose=verbose,
-                **kwargs  # Pass all additional arguments
-            )
-        
-        comparison_results[config_name] = results
-        success_counts[config_name] = num_converged
+for config in configurations:
+    eval_fn = config
+    videos = input_spatial.clone().detach().requires_grad_(True) if eval_fn=="spatial" else \
+            input_fourier.clone().detach().requires_grad_(True)
+    config_name = f"{eval_fn}"
+    if verbose: print(f"\n=== Running {config_name} pipeline ===")
+    results, num_converged = compute_motion(
+            eval_fn=eval_fn,
+            videos=videos,
+            num_trials=num_trials,
+            verbose=verbose,
+            **kwargs  # Pass all additional arguments
+        )
     
-    # Print summary of convergences
-    if verbose:
-        print("\n=== Convergence Summary ===")
-        for config_name, num_converged in success_counts.items():
-            print(f"{config_name}: {num_converged}/{num_trials} successful convergences")
-        
-    return comparison_results, success_counts
+    comparison_results[config_name] = results
+    success_counts[config_name] = num_converged
+
+# Print summary of convergences
+if verbose:
+    print("\n=== Convergence Summary ===")
+    for config_name, num_converged in success_counts.items():
+        print(f"{config_name}: {num_converged}/{num_trials} successful convergences")
+    
+return comparison_results, success_counts
 
 #give both inputs for relevant configurations
 methods = ["spatial", "fourier"]
@@ -217,7 +217,7 @@ results, _ = compare_configs(methods, (input_spatial, input_fourier))
 We run this code, obtaining the following
 ```bash
 GT shifts: tensor([[ 4,  2],
-        [ 0, -2]])
+    [ 0, -2]])
 
 === Running spatial pipeline ===
 Total successful convergences: 10/10
@@ -245,45 +245,45 @@ fig, axes = plt.subplots(len(configurations)//2, 2, figsize=(14, 12))
 axes = axes.flatten()
 
 for idx, (method, weighted) in enumerate(configurations):
-    # Compute loss grid
-    loss_grid = torch.zeros_like(X_grid)
-    
-    if method == "spatial":
-        frames_plot = input_spatial.clone().detach().requires_grad_(False)
-        pipeline_fn = spatial_pipeline
-    else:  # Fourier
-        frames_plot = input_fourier.clone().detach().requires_grad_(False)
-        pipeline_fn = lambda f, T, s: fourier_pipeline_video(f, s, fourier_input=True)
-    
-    for i in range(mesh_resolution):
-        for j in range(mesh_resolution):
-            test_shift = torch.zeros(B, 2)
-            test_shift[batch_idx, 0] = X_grid[i,j]
-            test_shift[batch_idx, 1] = Y_grid[i,j]
-            
-            _, _, var_batch = pipeline_fn(frames_plot, frames_plot.shape[1] if method=="spatial" else T, test_shift)
-            loss_grid[i,j] = var_batch[batch_idx].item()
-    
-    # Convert to numpy for plotting
-    X_np, Y_np, Z_np = X_grid.numpy(), Y_grid.numpy(), loss_grid.numpy()
-    
-    # Contour plot
-    ax = axes[idx]
-    contour = ax.contourf(X_np, Y_np, Z_np, levels=50, cmap='viridis')
-    fig.colorbar(contour, ax=ax)
-    
-    ax.set_title(f"{method.capitalize()}")
-    ax.set_xlabel('Shift dx')
-    ax.set_ylabel('Shift dy')
-    
-    # Overlay first N steps of optimization
-    trial_result = results[f"{method}"][0]  # pick first trial
-    shifts_for_plot = trial_result['all_shifts'][:N]
-    shifts_np = torch.stack(shifts_for_plot).numpy()[:, batch_idx, :]
-    ax.plot(shifts_np[:,0], shifts_np[:,1], 'r-o', label='Optimization steps')
-    ax.scatter(GT_SHIFTS[batch_idx,0], GT_SHIFTS[batch_idx,1], color='red', marker='x', s=60, label='GT')
+# Compute loss grid
+loss_grid = torch.zeros_like(X_grid)
 
-    ax.legend()
+if method == "spatial":
+    frames_plot = input_spatial.clone().detach().requires_grad_(False)
+    pipeline_fn = spatial_pipeline
+else:  # Fourier
+    frames_plot = input_fourier.clone().detach().requires_grad_(False)
+    pipeline_fn = lambda f, T, s: fourier_pipeline_video(f, s, fourier_input=True)
+
+for i in range(mesh_resolution):
+    for j in range(mesh_resolution):
+        test_shift = torch.zeros(B, 2)
+        test_shift[batch_idx, 0] = X_grid[i,j]
+        test_shift[batch_idx, 1] = Y_grid[i,j]
+        
+        _, _, var_batch = pipeline_fn(frames_plot, frames_plot.shape[1] if method=="spatial" else T, test_shift)
+        loss_grid[i,j] = var_batch[batch_idx].item()
+
+# Convert to numpy for plotting
+X_np, Y_np, Z_np = X_grid.numpy(), Y_grid.numpy(), loss_grid.numpy()
+
+# Contour plot
+ax = axes[idx]
+contour = ax.contourf(X_np, Y_np, Z_np, levels=50, cmap='viridis')
+fig.colorbar(contour, ax=ax)
+
+ax.set_title(f"{method.capitalize()}")
+ax.set_xlabel('Shift dx')
+ax.set_ylabel('Shift dy')
+
+# Overlay first N steps of optimization
+trial_result = results[f"{method}"][0]  # pick first trial
+shifts_for_plot = trial_result['all_shifts'][:N]
+shifts_np = torch.stack(shifts_for_plot).numpy()[:, batch_idx, :]
+ax.plot(shifts_np[:,0], shifts_np[:,1], 'r-o', label='Optimization steps')
+ax.scatter(GT_SHIFTS[batch_idx,0], GT_SHIFTS[batch_idx,1], color='red', marker='x', s=60, label='GT')
+
+ax.legend()
 
 plt.tight_layout()
 plt.show()
@@ -314,7 +314,7 @@ $$
 </div>
 
 Note that we have separated the moving-average filter into phase and magnitude components, meaning that computing the frequency response from here is straightforward. The magnitude usually ends up looking something like (found this online, forgive the spelling mistake in the title)
- ![Moving average](/assets/moving_avg_freq_response.png)  
+![Moving average](/assets/moving_avg_freq_response.png)  
 
 Where in this case we see the magnitude spectrum of a 7-tap ($T=7$) moving-average filter. We see that the filter generally has a low-pass behavior, with certain 'richochets' or rebounds of magnitude, which we will see later lead to all kinds of problems. 
 
@@ -411,54 +411,54 @@ We implement the frequency-domain interpolation in code as follows:
 ```python
 
 def make_sinc_2d(u, v, W, H):
-        # Separate u and v components for proper 2D bilinear
-        u_norm = u.unsqueeze(0) / W  # Normalized frequencies
-        v_norm = v.unsqueeze(0) / H
-        
-        # 2D separable bilinear kernel
-        sinc_u = torch.sinc(u_norm) ** 2  # Smooth in u-direction
-        sinc_v = torch.sinc(v_norm) ** 2  # Smooth in v-direction  
-        sinc_2d = sinc_u * sinc_v
-        return sinc_2d
+    # Separate u and v components for proper 2D bilinear
+    u_norm = u.unsqueeze(0) / W  # Normalized frequencies
+    v_norm = v.unsqueeze(0) / H
+    
+    # 2D separable bilinear kernel
+    sinc_u = torch.sinc(u_norm) ** 2  # Smooth in u-direction
+    sinc_v = torch.sinc(v_norm) ** 2  # Smooth in v-direction  
+    sinc_2d = sinc_u * sinc_v
+    return sinc_2d
 ```
 And incorporate it into our own existing code
 
 ```python
 
 def fourier_pipeline_video(frames: torch.Tensor, shifts: torch.Tensor,
-                                          weighted=False, fourier_input=False, base_alpha=BASE_ALPHA,
-                                           interpolate=False
-                            ):
-    """
-    Fully differentiable Fourier-domain warping and integration.
-    Args:
-        frames: (B, T, H, W) spatial frames
-        shifts: (B, 2) shift vector per batch
-        weighted: whether to apply geometric weighting
-    Returns:
-        shifted: (B, T, H, W) phase-shifted FFTs
-        integrated_fft: (B, H, W) integrated FFT
-        total_power: (B,) variance-like scalar
-    """
-    # no change to previous code
-    ...
-    if interpolate:
-        # implement bilinear interpolation
-        sinc_2d = make_sinc_2d(u, v, W, H)
-        shifted = X * phase_shifts * sinc_2d.unsqueeze(1)  # Apply to all frames
-    else:
-        shifted = X * phase_shifts  # (B,T,H,W)
+                                      weighted=False, fourier_input=False, base_alpha=BASE_ALPHA,
+                                       interpolate=False
+                        ):
+"""
+Fully differentiable Fourier-domain warping and integration.
+Args:
+    frames: (B, T, H, W) spatial frames
+    shifts: (B, 2) shift vector per batch
+    weighted: whether to apply geometric weighting
+Returns:
+    shifted: (B, T, H, W) phase-shifted FFTs
+    integrated_fft: (B, H, W) integrated FFT
+    total_power: (B,) variance-like scalar
+"""
+# no change to previous code
+...
+if interpolate:
+    # implement bilinear interpolation
+    sinc_2d = make_sinc_2d(u, v, W, H)
+    shifted = X * phase_shifts * sinc_2d.unsqueeze(1)  # Apply to all frames
+else:
+    shifted = X * phase_shifts  # (B,T,H,W)
 
-    # no change to next code
-    ...
-    return shifted, integrated_fft, total_power
+# no change to next code
+...
+return shifted, integrated_fft, total_power
 
 
 ``` 
 We are now ready to run our code once more, obtaining the following optimization results
 ```bash
 GT shifts: tensor([[ 4,  2],
-        [ 0, -2]])
+    [ 0, -2]])
 
 === Running spatial pipeline ===
 Total successful convergences: 10/10

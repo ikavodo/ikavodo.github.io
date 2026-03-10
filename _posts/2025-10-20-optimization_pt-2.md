@@ -5,9 +5,9 @@ date: 2025-11-06 14:00
 image: 
 headerImage: false
 tags:
-  - Computer Science
-  - Math
-  - Optimization
+- Computer Science
+- Math
+- Optimization
 star: true
 category: blog
 author: Ido Akov
@@ -16,7 +16,7 @@ description: "Optimization"
 Hihi! Here's to part two of this series, which is documenting my research in real-time, for purposes mostly of making things clearer for me, myself and I. 
 This part deals mainly with implementation of the motion computation algorithm in the Fourier domain.
 
- 
+
 ## Linear operators
 We begin our deep dive into the world of Fourier operators with the observation that most of the operations we've seen within our algorithmic framework are *linear*. For a brief recap on this, recall that a linear operator T over a vector space is defined by 
 <div>
@@ -98,7 +98,7 @@ $$
 
 The equivalent Fourier operator for our warped-frame integration operator $\overline{I}$ becomes then (solely on the basis of linearity): 
 
- <div>
+<div>
 $$
 \mathcal{F}\lbrace \overline{I} \rbrace \overset{\text{definition}}= 
 \mathcal{F} \lbrace \frac{1}{T}\sum_{t=0}^{T-1} W^t(I_t,\theta) \rbrace \overset{linearity}= 
@@ -122,19 +122,20 @@ $W(I,\theta) = I(x- \tau_x, y-\tau_y)$ where $ \theta = \begin{bmatrix} \tau_x \
 $$\mathcal{F} \lbrace W(I_t,\theta) \rbrace = \mathcal{F} \lbrace I(x-\tau_x, y-	\tau_y) \rbrace = e^{-j\omega \phi}\cdot \mathcal{F} \lbrace I \rbrace$$ 
 </div>
 with $\phi = \frac{\tau_x}{W}+\frac{\tau_y}{H}$ for an image I of dimensions $H \times W$. Now let's plug this back into our original equation, using the fact that 
- <div>
-    $$
-    W^t(I_t,\theta) = I_t(x-t 	\tau_x, y-t 	\tau_y) \rightarrow \mathcal{F} \lbrace W^t(I_t,\theta) \rbrace = e^{-j\omega t \phi}\cdot \mathcal{F} \lbrace I_t \rbrace
-    $$
- </div>
- plugging back into the original equation we get 
- <div>
-    $$
-    \mathcal{F}\lbrace \overline{I} \rbrace \overset{\text{definition}} = 
-    \frac{1}{T}\sum_{t=0}^{T-1} \mathcal{F} \lbrace W^t(I_t,\theta) \rbrace \overset{\text{shift theorem}}= 
-    \frac{1}{T}\sum_{t=0}^{T-1} e^{-j\omega t\phi}\cdot \mathcal{F} \lbrace I_t \rbrace \rbrace
-    $$
- </div>
+
+<div>
+$$
+W^t(I_t,\theta) = I_t(x-t 	\tau_x, y-t 	\tau_y) \rightarrow \mathcal{F} \lbrace W^t(I_t,\theta) \rbrace = e^{-j\omega t \phi}\cdot \mathcal{F} \lbrace I_t \rbrace
+$$
+</div>
+plugging back into the original equation we get 
+<div>
+$$
+\mathcal{F}\lbrace \overline{I} \rbrace \overset{\text{definition}} = 
+\frac{1}{T}\sum_{t=0}^{T-1} \mathcal{F} \lbrace W^t(I_t,\theta) \rbrace \overset{\text{shift theorem}}= 
+\frac{1}{T}\sum_{t=0}^{T-1} e^{-j\omega t\phi}\cdot \mathcal{F} \lbrace I_t \rbrace \rbrace
+$$
+</div>
 
 Now if we model 
 
@@ -152,65 +153,65 @@ $$
 where $ \Delta\phi = \phi - \phi^* = \frac{\tau_x - \tau_x^* }{W} + \frac{\tau_y - \tau_y^* }{H} $, meaning the resulting phase shift represents the displacement between the estimated motion vector and the ground truth.
 
 Next, if we plug this in to our Fourier-domain objective we finally obtain the following closed-form 
- <div>
-    $$
-    \mathcal{F}\lbrace \overline{I} \rbrace = 
-    \frac{1}{T}\sum_{t=0}^{T-1} e^{-j\omega t\Delta\phi} \cdot \mathcal{F} \lbrace I \rbrace = \frac{\mathcal{F} \lbrace I \rbrace}{T}\sum_{t=0}^{T-1} e^{-j\omega t\Delta\phi} \overset{\text{geometric sum}}= 
-    \mathcal{F} \lbrace I \rbrace \cdot \frac{1-e^{-j\omega T \Delta\phi}}{T(1-e^{-j\omega\Delta\phi})}
-    $$
- </div>
- **Whew**! What do we have here? It seems that we are multiplying the scaled Fourier-representation of the original reference frame by a rational, complex function, the numerator and denominator of which are both polynomials in the same complex number. To better understand the behavior of this function let's simplify each of these polynomials by replacing $z = e^{-j\omega\Delta\phi}$, thus obtaining the following *transfer function*
- <div>
-    $$
-    H(z)=\frac{1−z^T}{T(1-z)}
-    $$
- </div> 
- This is known as a *moving average filter* (this makes sense!). We will get back to it in the next blog-post, and understand just what exactly it does. Until then, let's complete the Fourier-domain formulation of our optimization objective.
+<div>
+$$
+\mathcal{F}\lbrace \overline{I} \rbrace = 
+\frac{1}{T}\sum_{t=0}^{T-1} e^{-j\omega t\Delta\phi} \cdot \mathcal{F} \lbrace I \rbrace = \frac{\mathcal{F} \lbrace I \rbrace}{T}\sum_{t=0}^{T-1} e^{-j\omega t\Delta\phi} \overset{\text{geometric sum}}= 
+\mathcal{F} \lbrace I \rbrace \cdot \frac{1-e^{-j\omega T \Delta\phi}}{T(1-e^{-j\omega\Delta\phi})}
+$$
+</div>
+**Whew**! What do we have here? It seems that we are multiplying the scaled Fourier-representation of the original reference frame by a rational, complex function, the numerator and denominator of which are both polynomials in the same complex number. To better understand the behavior of this function let's simplify each of these polynomials by replacing $z = e^{-j\omega\Delta\phi}$, thus obtaining the following *transfer function*
+<div>
+$$
+H(z)=\frac{1−z^T}{T(1-z)}
+$$
+</div> 
+This is known as a *moving average filter* (this makes sense!). We will get back to it in the next blog-post, and understand just what exactly it does. Until then, let's complete the Fourier-domain formulation of our optimization objective.
 
 
 ### Variance: a Fourier-domain formulation
 The variance operator can be defined over a random variable $X$ via 
 <div>
-    $$
-    \mathrm{Var}\!\left(X\right) = \mathbb{E}(X^2) - \mathbb{E}(X)^2
-    $$
- </div> 
+$$
+\mathrm{Var}\!\left(X\right) = \mathbb{E}(X^2) - \mathbb{E}(X)^2
+$$
+</div> 
 Now for an image I of dimensions $H \times W$ we can use the sample mean to represent the expectation
 <div>
-    $$
-    \mathbb{E}(I) = \frac{1}{HW} \sum_{x=0}^{W-1}\sum_{y=0}^{H-1} I(x, y)
-    $$
- </div> 
+$$
+\mathbb{E}(I) = \frac{1}{HW} \sum_{x=0}^{W-1}\sum_{y=0}^{H-1} I(x, y)
+$$
+</div> 
 Note that 
 <div>
-    $$ 
-     \sum_{x=0}^{W-1}\sum_{y=0}^{H-1} I(x, y) = \sum_{x=0}^{W-1}\sum_{y=0}^{H-1} I(x, y)\cdot e^{-2\pi j0} 
-     = \mathcal{F}_{0, 0} \lbrace{I} \rbrace 
-    $$
- </div>
+$$ 
+ \sum_{x=0}^{W-1}\sum_{y=0}^{H-1} I(x, y) = \sum_{x=0}^{W-1}\sum_{y=0}^{H-1} I(x, y)\cdot e^{-2\pi j0} 
+ = \mathcal{F}_{0, 0} \lbrace{I} \rbrace 
+$$
+</div>
 
 Meaning we can represent the expectation term $\mathbb{E}(X)$ via the DC-component of the signal.
 
- Next, Parseval's theorem states 
- <div>
-   $$
- \sum_{x=0}^{W-1}\sum_{y=0}^{H-1} |I(x, y)|^2 = \frac{1}{MN} \sum_{m=0}^{M-1}\sum_{n=0}^{N-1} |\mathcal{F} \lbrace{I} \rbrace(m, n)|^2
+Next, Parseval's theorem states 
+<div>
+$$
+\sum_{x=0}^{W-1}\sum_{y=0}^{H-1} |I(x, y)|^2 = \frac{1}{MN} \sum_{m=0}^{M-1}\sum_{n=0}^{N-1} |\mathcal{F} \lbrace{I} \rbrace(m, n)|^2
 $$
 </div>
 Meaning that signal energy is retained between the two domains (up to a scalar).
 
 We have then the necessary representations for computing variance in the Fourier domain! More specifically we get 
 <div>
-    $$
-    \mathcal{F} \lbrace{\mathrm{Var}\!\left(I\right)} \rbrace  \propto \sum_{m=0}^{M-1}\sum_{n=0}^{N-1} (|\mathcal{F} \lbrace{I} \rbrace(m, n)|^2) - |\mathcal{F}_{0, 0} \lbrace{I} \rbrace| ^2 = 
-    \sum_{(m, n) \neq (0, 0)} |\mathcal{F} \lbrace{I} \rbrace(m, n)|^2 
-    $$
- </div> 
- Meaning that in the Fourier domain variance is equivalent to the signal energy minus the squared DC-component. Surprisingly straightforward!
+$$
+\mathcal{F} \lbrace{\mathrm{Var}\!\left(I\right)} \rbrace  \propto \sum_{m=0}^{M-1}\sum_{n=0}^{N-1} (|\mathcal{F} \lbrace{I} \rbrace(m, n)|^2) - |\mathcal{F}_{0, 0} \lbrace{I} \rbrace| ^2 = 
+\sum_{(m, n) \neq (0, 0)} |\mathcal{F} \lbrace{I} \rbrace(m, n)|^2 
+$$
+</div> 
+Meaning that in the Fourier domain variance is equivalent to the signal energy minus the squared DC-component. Surprisingly straightforward!
 
 Now putting everything together we have our Fourier objective
 <div>
-   $$
+$$
 \mathcal{F} \lbrace {f_{\text{obj}}} \rbrace = \sum_{(m, n) \neq (0, 0)} |\mathcal{F}\lbrace \overline{I} \rbrace (m, n)|^2 
 $$
 </div>
@@ -232,97 +233,97 @@ import torch
 import torch.nn.functional as F
 
 def create_motion_vids(frames, T, shifts): 
-    """
-    Create motion videos of length T from batch of input frames, which are successively shifted using shifts.
-    Impemented using torch.roll()-> non-differentiable (can't use autograd)
-    """
-    if frames.ndim == 3: 
-        frames.unsqueeze(1)
-    
-    B, _, H, W = frames.shape 
-    if shifts.shape[0] != B: 
-        raise AssertionError("Dimensions of shifts must match batch size.") 
-    motion_vids = torch.zeros(B, T, H, W) 
-    for i in range(B): 
-        for j in range(T): 
-            cur_frame = frames[i] if frames.shape[1] == 1 else frames[i, j] 
-            dy, dx = tuple(shifts[i] * j)  
-            # Roll image along specified axes using shifts
-            motion_vids[i, j, ...] = torch.roll(cur_frame, shifts=(dx, dy), dims=(-2, -1)) 
+"""
+Create motion videos of length T from batch of input frames, which are successively shifted using shifts.
+Impemented using torch.roll()-> non-differentiable (can't use autograd)
+"""
+if frames.ndim == 3: 
+    frames.unsqueeze(1)
 
-    return motion_vids
+B, _, H, W = frames.shape 
+if shifts.shape[0] != B: 
+    raise AssertionError("Dimensions of shifts must match batch size.") 
+motion_vids = torch.zeros(B, T, H, W) 
+for i in range(B): 
+    for j in range(T): 
+        cur_frame = frames[i] if frames.shape[1] == 1 else frames[i, j] 
+        dy, dx = tuple(shifts[i] * j)  
+        # Roll image along specified axes using shifts
+        motion_vids[i, j, ...] = torch.roll(cur_frame, shifts=(dx, dy), dims=(-2, -1)) 
+
+return motion_vids
 
 def spatial_pipeline(frames: torch.Tensor, T: int, shifts: torch.Tensor, dims = (-2, -1)):
-    """
-    Pipeline implemented in spatial domain
-    """
-    motion_vids = create_motion_vids(frames, T, shifts)
-    integrated = motion_vids.mean(dim=1).unsqueeze(1)
-    variance = integrated.var(dim=dims)
-    return integrated, variance
+"""
+Pipeline implemented in spatial domain
+"""
+motion_vids = create_motion_vids(frames, T, shifts)
+integrated = motion_vids.mean(dim=1).unsqueeze(1)
+variance = integrated.var(dim=dims)
+return integrated, variance
 ```    
 
 Next we implement our Fourier-domain objective as previously described. 
 
 ```python
 def fourier_pipeline(frames: torch.Tensor, T: int, shifts: torch.Tensor, dim=(-2, -1), eps=1e-12, fourier_input=False):
-    """
-    Pipeline implemented in Fourier domain
-    """
-    if frames.ndim == 3:
-        frames = frames.unsqueeze(1)  # Ensure x has a channel dimension (B, 1, H, W)
+"""
+Pipeline implemented in Fourier domain
+"""
+if frames.ndim == 3:
+    frames = frames.unsqueeze(1)  # Ensure x has a channel dimension (B, 1, H, W)
 
-    B, _, H, W = frames.shape
-    if shifts.shape[0] != B:
-        raise AssertionError("Dimensions of shifts must match batch size.")
-    
-    # Use Fourier-representation as input for more efficient computation, otherwise compute Fourier transform of input
-    X = torch.fft.fft2(frames, norm='forward', dim=dim) if not fourier_input else frames
-    
-    # Create frequency grids (u, v)
-    dtype = X.real.dtype
+B, _, H, W = frames.shape
+if shifts.shape[0] != B:
+    raise AssertionError("Dimensions of shifts must match batch size.")
 
-    # Frequency grids
-    v, u = torch.meshgrid(
-        torch.arange(H, device=X.device, dtype=dtype),
-        torch.arange(W, device=X.device, dtype=dtype),
-        indexing='ij'
-    )
-    
-    # Expand shifts for broadcasting
-    shifts_expanded = shifts.view(B, 1, 1, 2)  # (B, 1, 1, 2)
-    
-    # Compute normalized frequency * shift
-    omega = (u.unsqueeze(0) * shifts_expanded[..., 0] / W +
-             v.unsqueeze(0) * shifts_expanded[..., 1] / H)  # (B, H, W)
-    
-    if omega.ndim < X.ndim:  # add channel dim if needed
-        omega = omega.unsqueeze(1)
-    
-    r = torch.exp(-2j * torch.pi * omega)  # complex exponent
+# Use Fourier-representation as input for more efficient computation, otherwise compute Fourier transform of input
+X = torch.fft.fft2(frames, norm='forward', dim=dim) if not fourier_input else frames
 
-    # Compute numerator and denominator
-    numerator = 1 - r**T
-    denominator = 1 - r
+# Create frequency grids (u, v)
+dtype = X.real.dtype
+
+# Frequency grids
+v, u = torch.meshgrid(
+    torch.arange(H, device=X.device, dtype=dtype),
+    torch.arange(W, device=X.device, dtype=dtype),
+    indexing='ij'
+)
+
+# Expand shifts for broadcasting
+shifts_expanded = shifts.view(B, 1, 1, 2)  # (B, 1, 1, 2)
+
+# Compute normalized frequency * shift
+omega = (u.unsqueeze(0) * shifts_expanded[..., 0] / W +
+         v.unsqueeze(0) * shifts_expanded[..., 1] / H)  # (B, H, W)
+
+if omega.ndim < X.ndim:  # add channel dim if needed
+    omega = omega.unsqueeze(1)
+
+r = torch.exp(-2j * torch.pi * omega)  # complex exponent
+
+# Compute numerator and denominator
+numerator = 1 - r**T
+denominator = 1 - r
+
+# Differentiable masking for r ≈ 1
+mask = torch.abs(denominator) < eps
+denominator_safe = torch.where(mask, torch.ones_like(denominator), denominator)
+numerator_safe = torch.where(mask, torch.ones_like(numerator), numerator)
+
+geo_sum = numerator_safe / denominator_safe
+geo_sum = torch.where(mask, torch.tensor(1., device=X.device) * T, geo_sum)
+
+summed_fft = X * geo_sum
+integrated_fft = summed_fft/T
     
-    # Differentiable masking for r ≈ 1
-    mask = torch.abs(denominator) < eps
-    denominator_safe = torch.where(mask, torch.ones_like(denominator), denominator)
-    numerator_safe = torch.where(mask, torch.ones_like(numerator), numerator)
-    
-    geo_sum = numerator_safe / denominator_safe
-    geo_sum = torch.where(mask, torch.tensor(1., device=X.device) * T, geo_sum)
-    
-    summed_fft = X * geo_sum
-    integrated_fft = summed_fft/T
-        
-    # Compute squared magnitude |X|^2
-    mag2 = integrated_fft.real.square() + integrated_fft.imag.square()
-    # Sum over all frequency bins
-    total_power = mag2.sum(dim=dim)
-    dc_power = mag2[...,0,0]
-    variance_fft = total_power - dc_power
-    return integrated_fft, variance_fft
+# Compute squared magnitude |X|^2
+mag2 = integrated_fft.real.square() + integrated_fft.imag.square()
+# Sum over all frequency bins
+total_power = mag2.sum(dim=dim)
+dc_power = mag2[...,0,0]
+variance_fft = total_power - dc_power
+return integrated_fft, variance_fft
 ```
 
 Quick sanity check that the spatial and Fourier domain implementations yield the same value:
