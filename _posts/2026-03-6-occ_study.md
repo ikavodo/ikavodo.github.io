@@ -13,8 +13,7 @@ category: blog
 author: Ido Akov
 description: "A controlled Moving MNIST study of how occlusion geometry affects CNN accuracy, confidence, and calibration."
 ---
-
-Occlusion is one of those things that seems trivial until you ask a classifier to deal with it. A person can usually recognize a digit even when part of it is covered, scratched out, or missing behind some blob. But *how* the information is missing matters. A “3” with a few random pixels deleted is still obviously a “3”. A “3” with one coherent chunk missing can suddenly look much less obvious.
+The motivation for this post is the following
 
 This post is about that difference.
 

@@ -38,7 +38,7 @@ NOTE: tau is integer; torch.roll is integer-shifted, circular.
 L = x.numel()
 acc = torch.zeros_like(x)
 for j in range(T):
-    acc += torch.roll(x, shifts=(j * tau) % L, dims=0)
+acc += torch.roll(x, shifts=(j * tau) % L, dims=0)
 return acc / N
 
 # Signal: rectangular pulse (Heaviside window)
@@ -61,7 +61,7 @@ idx = torch.arange(M) - M//2
 plot_bounds = slice(lower - width//2, len(idx)) 
 for tau in taus:
 plt.plot(idx[plot_bounds], integrated[tau].numpy()[plot_bounds], 
-                 label=fr"$\tau = {tau}$")
+             label=fr"$\tau = {tau}$")
 
 # (Optional) show original signal for reference (light dashed)
 plt.plot(idx[plot_bounds], x.numpy()[plot_bounds], '--', alpha=0.4, label="original x")
@@ -153,6 +153,7 @@ What would be necessary then to make an equivalent *differentiable* implementati
 
 ## Differentiable PHAT ('naive')
 To get a better understanding of what's happening in the final step of the algorithm, let's explicitly write out the real part of $x_{PHAT}$:
+
 <div>
 $$
 \Re\{x_{\text{PHAT}}[n]\}
@@ -164,11 +165,10 @@ e^{-j\omega_k n_0}\, e^{j\omega_k n}
 \frac{1}{N}\sum_{k=0}^{N-1}
 e^{j\omega_k (n - n_0)}
 \right\} \overset{trig.} = 
-
 \frac{1}{N}\Re(\sum_{k=0}^{N-1}\cos{(\omega_k \Delta n)} + j\sin{(\omega_k \Delta n)}) = \frac{1}{N}\sum_{k=0}^{N-1}\cos{(\omega_k \Delta n)}
-
 $$
 </div>
+
 Where $\Delta n = n - n_0$.
 
 Is this a decent optimization objective? On the one hand plugging in $n=n_0$ we obtain a global maxima, via 
@@ -236,11 +236,11 @@ k = torch.arange(K, device=device)
 return 1.0 - k / (K - 1 + 1e-8)
 
 def phat_objective(x1: torch.Tensor,
-                          x2: torch.Tensor,
-                          tau: torch.Tensor,
-                          exclude_dc: bool = True,
-                          method: str = "phat",
-                         ) -> torch.Tensor:
+                      x2: torch.Tensor,
+                      tau: torch.Tensor,
+                      exclude_dc: bool = True,
+                      method: str = "phat",
+                     ) -> torch.Tensor:
 """
 f(tau) = Re{ mean_k [ C_normed[k] * exp(-i*ω_k*tau) ] }   (method="phat")
 or a Fejér-weighted surrogate (method="fejer").
@@ -259,16 +259,16 @@ mag = torch.clamp(torch.abs(CPS), min=1e-12)
 C_normed = CPS / mag     
 
 if exclude_dc:
-    # ignore DC energy component
-    C_normed = C_normed[1:]
-    omega   = omega[1:]
+# ignore DC energy component
+C_normed = C_normed[1:]
+omega   = omega[1:]
 
 C_shifted = C_normed * torch.exp(-1j * omega * tau)  # minus → peak at true shift 
 if method == "fejer":
-    # compute Fejer weights in frequency domain
-    weights = fejer_weights(C_shifted)
-    C_shifted *= weights
-    
+# compute Fejer weights in frequency domain
+weights = fejer_weights(C_shifted)
+C_shifted *= weights
+
 dirichlet = torch.real(C_shifted)
 return dirichlet.mean()
 
@@ -278,11 +278,11 @@ return dirichlet.mean()
 def plot_kernel_comparison(ax, taus_grid, x1, x2):
 """Plot Dirichlet vs Fejér kernel comparison on single axes with alpha=1, no interpolation"""
 dirichlet_vals = torch.tensor([float(phat_objective(x1, x2, t, method="dirichlet").detach())
-                               for t in taus_grid])
+                           for t in taus_grid])
 ax.plot(taus_grid.numpy(), dirichlet_vals.numpy(), label='Dirichlet Kernel', linewidth=3)
 
 fejer_vals = torch.tensor([float(phat_objective(x1, x2, t, method="fejer").detach())
-                               for t in taus_grid])
+                           for t in taus_grid])
 ax.plot(taus_grid.numpy(), fejer_vals.numpy(), label='Fejér Kernel', linewidth=3)
 
 # Add true shift line
@@ -336,9 +336,9 @@ Let's see the effect of varying this alpha on our optimization objective, slight
 ```python
 
 def gcc_phat_objective(x1: torch.Tensor,
-                          ... # as previously
-                          alpha : float = 1.0
-                         ) -> torch.Tensor:
+                      ... # as previously
+                      alpha : float = 1.0
+                     ) -> torch.Tensor:
 """
 f(tau) = Re{ mean_k [ C_normed[k] * exp(-i*ω_k*tau) ] }   (method="phat")
 or a Fejér-weighted surrogate (method="fejer").
@@ -354,11 +354,11 @@ return dirichlet.mean()
 def plot_kernel_comparison(ax, taus_grid, x1, x2, alpha=1):
 """Plot Dirichlet vs Fejér kernel comparison on single axes with alpha=1, no interpolation"""
 dirichlet_vals = torch.tensor([float(gcc_phat_objective(x1, x2, t, method="dirichlet", alpha=alpha).detach())
-                               for t in taus_grid])
+                           for t in taus_grid])
 ax.plot(taus_grid.numpy(), dirichlet_vals.numpy(), label='Dirichlet Kernel', linewidth=3)
 
 fejer_vals = torch.tensor([float(gcc_phat_objective(x1, x2, t, method="fejer", alpha=alpha).detach())
-                               for t in taus_grid])
+                           for t in taus_grid])
 ... # as previously
 
 # Create plot
