@@ -5,9 +5,9 @@ date: 2024-11-13 16:05
 image: /assets/images/fourier%20transf.png
 headerImage: true
 tags:
-  - Fourier Transform
-  - DSP
-  - Math
+- Fourier Transform
+- DSP
+- Math
 star: true
 category: blog
 author: Ido Akov
@@ -34,9 +34,9 @@ The frequency response of an ideal lowpass filter, $H_{LP}(j\omega)$, is defined
 
 <div>
 $$H_{LP}(j\omega) = \begin{cases} 
-      1, & |\omega| \leq \omega_c \\
-      0, & |\omega| > \omega_c, 
-   \end{cases}$$
+   1, & |\omega| \leq \omega_c \\
+   0, & |\omega| > \omega_c, 
+\end{cases}$$
 </div>
 
 Where we suppose for now that the cutoff frequency is unity, meaning $\omega_c=1$. \\
@@ -48,46 +48,67 @@ What does the time-domain representation of this filter look like? Could we use 
 
 The Hilbert transformer is defined via an impulse response $h_{HT}$ as:
 
-<div> $$ 
+<div> 
+$$ 
 h_{HT}(t) = \frac{1}{\pi t}, 
-$$ </div>
+$$ 
+</div>
+
 with a Fourier transform of
-   <div> $$ 
-   H_{HT}(j\omega)= -j\, \text{sign}(\omega),
-   $$ </div>
+
+<div> 
+$$ 
+H_{HT}(j\omega)= -j\, \text{sign}(\omega),
+$$ 
+</div>
 
 We can use the Hilbert transformer to generate an **analytic**, or complex representation $z[n]$, such that
 
-   <div> $$ 
-   z(t) = x(t) + j*(x(t)\circledast h_{HT}(t)) 
-   $$ </div>
-	
-   where $\circledast$ is the convolution operator and j is the imaginary unit. The frequency domain representation of this signal retains the positive frequency components of x[n], while setting all negative frequency components to zero. This effectively halves the frequency bandwidth, enabling transmission over a narrower band.
+<div> 
+$$ 
+z(t) = x(t) + j*(x(t)\circledast h_{HT}(t)) 
+$$ 
+</div>
+
+where $\circledast$ is the convolution operator and j is the imaginary unit. The frequency domain representation of this signal retains the positive frequency components of x[n], while setting all negative frequency components to zero. This effectively halves the frequency bandwidth, enabling transmission over a narrower band.
 
 
 ## Using the modulation theorem to find the Fourier transform of sinc(t)
 We will use the Hilbert transformer and the Fourier modulation theorem to find the frequency-domain representation of the unnormalized sinc function, defined by 
 
-<div>$$
+<div>
+$$
 sinc(t) = \frac{\sin{t}}{t}
-$$ </div>.
+$$ 
+</div>.
 For this purpose we will multiply it by a scalar $\frac{1}{\pi}$ to obtain
-   <div> $$ 
-	\frac{sinc(t)}{\pi} =\frac{\sin{t}}{\pi t}
-   $$ </div>
 
- Does the denominator of this function now look familiar? Let's first find the Fourier transform of the numerator in order to use the modulation theorem.
-   <div> $$ 
-	F\{\sin{t}\}= \int_{-\infty}^{\infty} sin(t)e^{-j\omega t}dt = \frac{1}{2j}\int_{-\infty}^{\infty} (e^{jt}-e^{-jt})e^{-j\omega t}dt \\ \overset{lin.}{=} \frac{1}{2j}(\int_{-\infty}^{\infty}e^{-j(\omega-1)t}dt - \int_{-\infty}^{\infty}e^{-j(\omega+1)t}dt) 
+<div> 
+$$ 
+\frac{sinc(t)}{\pi} =\frac{\sin{t}}{\pi t}
+$$ 
+</div>
+
+Does the denominator of this function now look familiar? Let's first find the Fourier transform of the numerator in order to use the modulation theorem.
+
+<div> 
+$$ 
+F\{\sin{t}\}= \int_{-\infty}^{\infty} sin(t)e^{-j\omega t}dt = \frac{1}{2j}\int_{-\infty}^{\infty} (e^{jt}-e^{-jt})e^{-j\omega t}dt \\ \overset{lin.}{=} \frac{1}{2j}(\int_{-\infty}^{\infty}e^{-j(\omega-1)t}dt - \int_{-\infty}^{\infty}e^{-j(\omega+1)t}dt) 
 \overset{time-shift}{=} \frac{\pi(\delta(\omega-1) - \delta(\omega+1))}{j} \\
 \overset{\omega_c=1}{=} \frac{\pi(\delta(\omega-\omega_c) - \delta(\omega+\omega_c))}{j}
-   $$ </div>
+$$ 
+</div>
+
 Where $\delta(t)$ is the [Dirac delta function](https://en.wikipedia.org/wiki/Dirac_delta_function). \\
 Now we can finally use the modulation theorem:
-<div> $$ 
-	\frac{\sin{t}}{\pi t} = \sin{t}* \frac{1}{\pi t}\overset{F}{\leftrightarrow} \frac{\pi}{2\pi j}\int_{-\pi}^{\pi} (\delta(\theta-\omega_c) - \delta(\theta-\omega_c))H_{HT}(j(\omega-\theta))d\theta \\ 
+
+<div> 
+$$ 
+\frac{\sin{t}}{\pi t} = \sin{t}* \frac{1}{\pi t}\overset{F}{\leftrightarrow} \frac{\pi}{2\pi j}\int_{-\pi}^{\pi} (\delta(\theta-\omega_c) - \delta(\theta-\omega_c))H_{HT}(j(\omega-\theta))d\theta \\ 
 = \frac{1}{2j}(H_{HT}(j(\omega-\omega_c))-H_{HT}(j(\omega+\omega_c))).
-   $$ </div>
+$$ 
+</div>
+
 Let's divide into the cases 
 <div>
 $$
@@ -95,32 +116,37 @@ $$
 1. \, |\omega|<= \omega_c, \\
 2. \, |\omega|> \omega_c,
 \end{cases}
-   $$ </div>
+$$ 
+</div>
+
 and respectively evaluate our intermediate result.
 In the first case we have
 <div>
 $$
 H_{HT}(j(\omega-\omega_c)) = j, \, H_{HT}(j(\omega+\omega_c)) = -j \implies\\ 
 \frac{1}{2j}(H_{HT}(j(\omega-\omega_c))-H_{HT}(j(\omega+\omega_c))) = \frac{2j}{2j} = 1.
-   $$ </div>
+$$ 
+</div>
 Whereas in the second
 <div>
 $$
 H_{HT}(j(\omega-\omega_c)) = j, \, H_{HT}(j(\omega+\omega_c)) = j \implies\\ 
 \frac{1}{2j}(H_{HT}(j(\omega-\omega_c))-H_{HT}(j(\omega+\omega_c))) = \frac{0}{2j} = 0.
-   $$ </div>
+$$ 
+</div>
 
 Then we can conclude 
 <div>
 $$
 
- \frac{1}{2j}(H_{HT}(j(\omega-\omega_c))-H_{HT}(j(\omega+\omega_c))) = \\
+\frac{1}{2j}(H_{HT}(j(\omega-\omega_c))-H_{HT}(j(\omega+\omega_c))) = \\
 \begin{cases} 
-      1, & |\omega| \leq \omega_c \\
-      0, & |\omega| > \omega_c 
-   \end{cases} \\
+   1, & |\omega| \leq \omega_c \\
+   0, & |\omega| > \omega_c 
+\end{cases} \\
 = H_{LP}
-   $$ </div>
+$$ 
+</div>
 
 Meaning we have proven that the unnormalized sinc function and ideal low-pass filter constitute a Fourier transform pair (up to a scalar $\frac{1}{\pi}$).
 One of the consequences of this fact is that the we are unable to implement an ideal-lowpass filter in the time domain, as the sinc function extends infinitely in each direction. This means we must find finite (and hopefully causal) approximations of the ideal low-pass for effective lowpass filtering in the time domain...
