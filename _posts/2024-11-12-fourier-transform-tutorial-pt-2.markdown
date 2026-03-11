@@ -1,5 +1,5 @@
 ---
-title: "The Fourier Transform: pt. 2"
+title: "The Fourier Transform: pt.2"
 layout: post
 date: 2024-11-13 16:05
 image: /assets/images/fourier%20transf.png
@@ -11,7 +11,7 @@ tags:
 star: true
 category: blog
 author: Ido Akov
-description: "Fourier Transform tutorial: pt. 2"
+description: "Fourier Transform tutorial: pt.2"
 ---
 
 ## Introduction
@@ -113,10 +113,10 @@ Let's divide into the cases
 <div>
 $$
 \begin{cases}
-1. \, |\omega|<= \omega_c, \\
-2. \, |\omega|> \omega_c,
+1, & |\omega| \leq \omega_c \\
+2, & |\omega| > \omega_c
 \end{cases}
-$$ 
+$$
 </div>
 
 and respectively evaluate our intermediate result.
@@ -127,7 +127,9 @@ H_{HT}(j(\omega-\omega_c)) = j, \, H_{HT}(j(\omega+\omega_c)) = -j \implies\\
 \frac{1}{2j}(H_{HT}(j(\omega-\omega_c))-H_{HT}(j(\omega+\omega_c))) = \frac{2j}{2j} = 1.
 $$ 
 </div>
+
 Whereas in the second
+
 <div>
 $$
 H_{HT}(j(\omega-\omega_c)) = j, \, H_{HT}(j(\omega+\omega_c)) = j \implies\\ 
@@ -136,16 +138,17 @@ $$
 </div>
 
 Then we can conclude 
+
 <div>
 $$
-
-\frac{1}{2j}(H_{HT}(j(\omega-\omega_c))-H_{HT}(j(\omega+\omega_c))) = \\
+\frac{1}{2j}\left(H_{HT}(j(\omega-\omega_c)) - H_{HT}(j(\omega+\omega_c))\right)
+=
 \begin{cases} 
-   1, & |\omega| \leq \omega_c \\
-   0, & |\omega| > \omega_c 
-\end{cases} \\
+1, & |\omega| \leq \omega_c \\
+0, & |\omega| > \omega_c
+\end{cases}
 = H_{LP}
-$$ 
+$$
 </div>
 
 Meaning we have proven that the unnormalized sinc function and ideal low-pass filter constitute a Fourier transform pair (up to a scalar $\frac{1}{\pi}$).
