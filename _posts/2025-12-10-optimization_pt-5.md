@@ -9,6 +9,7 @@ tags:
 - Math
 - Optimization
 star: true
+hidden: true
 category: blog
 author: Ido Akov
 description: "Deriving the two-term Fourier structure under static occlusion, and comparing the Fourier and spatial objectives empirically under controlled occlusion density."

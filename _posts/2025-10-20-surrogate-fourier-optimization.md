@@ -8,6 +8,7 @@ tags:
 - Math
 - Optimization
 star: true
+hidden: true
 category: blog
 author: Ido Akov
 description: "Replacing a non-convex Fourier objective with a differentiable surrogate using Wirtinger calculus."
