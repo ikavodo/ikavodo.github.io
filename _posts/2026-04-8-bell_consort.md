@@ -1,5 +1,5 @@
 ---
-title: "Bell Consort"
+title: "Bell Consort: A Sonic Meditation"
 layout: post
 date: 2026-04-08 15:00
 image:

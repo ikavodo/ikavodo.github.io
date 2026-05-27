@@ -9,58 +9,131 @@ tags:
 - Math
 - Optimization
 star: true
-hidden: true
+# hidden: true
 category: blog
 author: Ido Akov
-description: "Deriving the two-term Fourier structure under static occlusion, and comparing the Fourier and spatial objectives empirically under controlled occlusion density."
+description: "GCC-PHAT under additive noise, the zero-motion bias, and its 2D analog under static occlusion."
 ---
-The [previous four posts](https://ikavodo.github.io/optimization_pt-4/) were all about 2DoF translation. This post adds the piece that was missing from pt.4: a static occlusion model. We show how it biases the Fourier objective toward zero motion, and compare the Fourier and spatial objectives empirically under controlled occlusion density.
+[pt.4](https://ikavodo.github.io/optimization_pt-4/) derived the GCC-PHAT objective for clean video. This post adds a static noise component, traces how it creates a spurious zero-motion maximum, extends the same argument to 2D static occlusion, and then asks empirically: does working in the Fourier domain help?
 
 ---
-## Static occlusion and the zero-motion bias
 
-In [pt.4](https://ikavodo.github.io/optimization_pt-4/) we saw that applying the moving-average integration in the presence of a static component splits the Fourier result into two competing terms. The same structure appears in 2D with fragmented occlusion.
+## The zero-motion bias
 
-Model each frame as a moving target with a static occluder layered on top:
+Suppose each frame contains a static noise mask $V$:
 
 <div>
 $$
-I_t = W^t(I_{\mathrm{mov}},\,\theta^*) + I_{\mathrm{occ}}
+I_t = W^t(I_0,\,\tau^*) + V.
 $$
 </div>
 
-where $I_{\mathrm{mov}}$ is the target appearance, $I_{\mathrm{occ}}$ the static occluder, and $\theta^*$ the true motion. By the Fourier shift theorem and linearity, the integrated image becomes
+We follow the same even/odd split from [pt.4](https://ikavodo.github.io/optimization_pt-4/). Integrating over even-indexed frames and applying the shift theorem gives
 
 <div>
 $$
-\mathcal{F} \{\overline{I}(\theta)\} = H(\Delta\phi) \cdot \mathcal{F}\{I_{\mathrm{mov}}\} + H(\phi) \cdot \mathcal{F}\{I_{\mathrm{occ}}\}
+I_{even} = \mathcal{H}_{\frac{T}{2}}(\Delta\phi) \cdot \mathcal{F} \lbrace I_0 \rbrace + \mathcal{H}_{\frac{T}{2}}(\phi) \cdot \mathcal{F} \lbrace V \rbrace
 $$
 </div>
 
-where $H$ is the moving-average filter from [pt.2](https://ikavodo.github.io/optimization_pt-2/), $\phi(\theta)$ is the phase parameter, and $\Delta\phi = \phi(\theta) - \phi(\theta^*)$ is the phase error. The variance objective therefore becomes
+where $\phi = \tau/M$, $\Delta\phi = (\tau - \tau^*)/M$, and $\mathcal{H}_{T/2}$ is the moving-average filter of order $T/2$ from [pt.3](https://ikavodo.github.io/optimization_pt-3/). The first term is maximized at the true shift ($\Delta\phi = 0$); the second depends only on $\phi$ and peaks at zero motion ($\phi = 0$).
+
+The bias arises at $\tau = 0$: there $\phi = 0$ and $\mathcal{H}_{T/2}(0) = 1$, so the noise term reaches its maximum. Any method that measures image similarity on raw frames — including plain phase correlation — sees a spurious peak at zero motion.
+
+Since $I_{odd} = e^{-j\omega\phi^*} \cdot I_{even}$ (derived in [pt.4](https://ikavodo.github.io/optimization_pt-4/)), the GCC-PHAT cross-spectrum simplifies to
 
 <div>
 $$
-f_{\mathrm{opt}}(\theta) \overset{\text{DFT}}{\leftrightarrow} \sum_{(m,n)\neq(0,0)} |H(\Delta\phi) \cdot \mathcal{F}\{I_{\mathrm{mov}}\} + H(\phi) \cdot \mathcal{F}\{I_{\mathrm{occ}}\}|^2
+\frac{I_{odd} \cdot \overline{I_{even}}}{|I_{odd} \cdot \overline{I_{even}}|^\alpha} = |I_{even}|^{2(1-\alpha)} e^{-j\omega\phi^*}
 $$
 </div>
 
-The first term is maximized when $\Delta\phi = 0$, i.e., at the true motion $\theta = \theta^*$, where $H(0) = 1$. The second is maximized when $\phi = 0$, i.e., at *zero* motion. These two compete directly, and as occlusion density grows the zero-motion bias wins.
+Setting $\alpha = 0.5$ and using the fact that the moving-average filter attenuates noise energy by $\sqrt{T/2}$,
 
-Note that $H$ is a moving-average filter of order $T$, which attenuates the occluder contribution by approximately $\sqrt{T}$. So integrating more frames weakens the bias — but for finite $T$ the competition is real.
+<div>
+$$
+|I_{even}| \cdot e^{-j\omega\phi^*} \approx |\mathcal{H}_{\frac{T}{2}}(\Delta\phi) \cdot \mathcal{F} \lbrace I_0 \rbrace + \frac{\mathcal{F} \lbrace V \rbrace}{\sqrt{T/2}}| \cdot e^{-j\omega\phi^*}
+$$
+</div>
 
-In the frequency domain, the two competing terms are visible explicitly, unlike in the spatial domain where occlusion simply "hurts" without giving insight. The occluder term is anchored at $\theta = 0$, while the moving target term peaks at the true motion $\theta^*$. The variance objective is therefore a balance between these two contributions.
+As $N \to \infty$ the noise term vanishes and we recover the clean signal:
+
+<div>
+$$
+\begin{aligned}
+\lim_{T \to \infty} |\mathcal{H}_{\frac{T}{2}}(\Delta\phi) \cdot \mathcal{F} \lbrace I_0 \rbrace + \frac{\mathcal{F} \lbrace V \rbrace}{\sqrt{T/2}}| \cdot e^{-j\omega\phi^*} \\[4pt]
+&= |\mathcal{H}_{\infty}(\Delta\phi) \cdot \mathcal{F} \lbrace I_0 \rbrace| \cdot e^{-j\omega\phi^*}
+\end{aligned}
+$$
+</div>
+
+For finite $T$ the bias persists, but GCC-PHAT with $\alpha = 0.5$ suppresses it: the spectral whitening down-weights bins dominated by $V$, and as $T$ grows the noise term shrinks as $1/\sqrt{T/2}$.
+
+---
+## 2D case
+
+For static 2D occlusion the structure is identical, but this large-$T$ fix no longer applies. Model each frame as a moving target with a static occluder layered on top:
+
+<div>
+$$
+I_t = W^t(I_{\mathrm{mov}},\,\theta^*) + I_{\mathrm{occ}}.
+$$
+</div>
+
+For an example of such a video in the 2DoF case:
+
+<video width="128" height="128" controls>
+  <source src="/assets/videos/2dof_video.mp4" type="video/mp4">
+</video>
+
+By the shift theorem and linearity, the integrated image becomes
+
+<div>
+$$
+\mathcal{F} \lbrace \overline{I}(\theta) \rbrace = H(\Delta\phi) \cdot \mathcal{F} \lbrace I_{\mathrm{mov}} \rbrace + H(\phi) \cdot \mathcal{F} \lbrace I_{\mathrm{occ}} \rbrace
+$$
+</div>
+
+where $H$ is the moving-average filter from [pt.2](https://ikavodo.github.io/optimization_pt-2/), and the variance objective becomes
+
+<div>
+$$
+f_{\mathrm{opt}}(\theta) \overset{\text{DFT}}{\leftrightarrow} \sum_{(m,n)\neq(0,0)} |H(\Delta\phi) \cdot \mathcal{F} \lbrace I_{\mathrm{mov}} \rbrace + H(\phi) \cdot \mathcal{F} \lbrace I_{\mathrm{occ}} \rbrace|^2
+$$
+</div>
+
+The first term is maximized at the true motion $\theta^*$; the second at zero motion. Unlike $\mathcal{F}\lbrace V \rbrace / \sqrt{T/2}$, the occluder term $H(\phi) \cdot \mathcal{F} \lbrace I_{\mathrm{occ}} \rbrace$ does not shrink with $T$ — integrating more frames cannot wash out a fixed-energy occluder. At high occlusion density the zero-motion term wins regardless of domain.
+
+This asymmetry also shapes the choice of objective for the experiment below. GCC-PHAT's advantage over the plain variance objective requires many frames to activate (the $1/\sqrt{T/2}$ factor needs large $T$). With $T = 8$ frames that advantage hasn't kicked in, so both methods below use the variance objective — making the comparison a clean test of *domain* (spatial vs. Fourier), not algorithm.
 
 ---
 
-## Experiment: Fourier vs. spatial under occlusion
+## Experiment: spatial vs. Fourier domain motion estimation
 
-Setup: $T=8$ frames, $128\times128$ images, Adam at learning rate $0.1$, 200 iterations, EPE threshold $\|\hat{\tau} - \tau^*\|_2 < 0.5$, occlusion density swept from 0 to ~80%.
+We've shown that occlusion injects a bias no amount of integration can remove. But theory says nothing about magnitude: how quickly does increasing occlusion density hurt convergence, and does the Fourier domain formulation offer any practical advantage in the regime where both methods are expected to struggle? To answer this we run a controlled experiment on synthetic video under varying occlusion density.
 
-The Fourier objective matches the spatial baseline in success rate across all occlusion densities. At low-to-mid densities it reaches the EPE threshold in fewer iterations, and its time-to-threshold profile is flatter — it converges more consistently rather than just faster on average. At higher densities both methods fail: the zero-motion bias in the occlusion term overwhelms the moving-object term regardless of domain.
+**Metric.** Motion estimation quality is measured by end-point error (EPE) — the Euclidean distance in pixels between the estimated shift $\hat\tau$ and the ground truth $\tau^*$:
+
+<div>
+$$
+\mathrm{EPE} = \|\hat\tau - \tau^*\|_2
+$$
+</div>
+
+EPE is the standard evaluation metric in optical flow, where sub-half-pixel accuracy is the target. A trial counts as successful if EPE < 0.5 after optimization. We also track time-to-threshold (TTT): the median number of optimizer steps to first achieve EPE < 0.5 — a measure of convergence speed rather than just final accuracy.
+
+**Design.** Both methods — spatial-domain variance and Fourier-domain variance — optimize over 128×128 synthetic video sequences of $T = 8$ frames with known ground-truth shifts. Each uses Adam with learning rate 1.0, up to 250 steps, and a minimum of 20 steps before convergence is declared. Occlusion is a static triangular mask swept from 0% to 90% density in steps of 10%. Results are averaged over 3 independent random seeds per density point, with confidence intervals reported. The only difference between the two methods is whether variance is computed on spatial pixel values or on their 2D Fourier coefficients.
+
+**Results**
+
+![Success rate vs. occlusion density](/assets/images/2dof_success_vs_density.png)
+
+![Time-to-threshold vs. occlusion density](/assets/images/2dof_ttt_vs_density.png)
+
+At low-to-mid occlusion densities the Fourier objective reaches the EPE threshold in fewer steps and with a flatter TTT curve — it converges more consistently rather than just faster on average. Success rates are comparable across all densities. Above roughly 50% density the zero-motion bias overwhelms the signal term regardless of domain, exactly as the theory predicts, with the spatial method failing slightly more gracefully.
 
 ---
 
-The Fourier formulation makes the occlusion problem legible: instead of just "hurts at high density", you can read off exactly why and at what rate. The next post extends this to similarity motion — where the challenge turns out to be structural even before occlusion enters.
+The Fourier formulation makes the bias legible — instead of just "hurts at high density" you can read off exactly why and at what rate. The next post extends this to similarity motion, where the challenge turns out to be structural even before occlusion enters.
 
 Until then!
