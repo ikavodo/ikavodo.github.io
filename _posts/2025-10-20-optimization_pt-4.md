@@ -1,5 +1,5 @@
 ---
-title: "Motion computation via an unsupervised-learning approach (pt.4)"
+title: "Motion Under Occlusion, pt.4: GCC-PHAT and the Fejér Kernel"
 layout: post
 date: 2025-11-25 18:00
 image: 
@@ -11,11 +11,9 @@ tags:
 star: true
 category: blog
 author: Ido Akov
-description: "Optimization"
+description: "Connecting our objective to GCC-PHAT, the Fejér kernel, and a video-sequence formulation using even/odd frame pairs."
 ---
-As promised previously, this time we talk about cross-correlation phase transform (PHAT), a generalization of it and possible connections to our algorithm.
-This time we'll be taking a look at a 1D formulation of our problem, and see if anything new comes out of this.
-We'll also discuss a potential noise model, and how it may impact our Fourier formulation.
+As promised, this post covers the cross-correlation phase transform (PHAT), a generalization, and connections to our algorithm — all in a 1D formulation.
 
 ## Problem: 1D formulation
 
@@ -30,16 +28,15 @@ import torch
 import matplotlib.pyplot as plt 
 
 def integrate_mean_by_roll(x: torch.Tensor, T: int, tau: int) -> torch.Tensor:
-"""
-Build T frames by successively rolling x by j*tau (j=0..N-1),
-then return the mean over frames (weighted=False).
-NOTE: tau is integer; torch.roll is integer-shifted, circular.
-"""
-L = x.numel()
-acc = torch.zeros_like(x)
-for j in range(T):
-acc += torch.roll(x, shifts=(j * tau) % L, dims=0)
-return acc / N
+    """
+    Build T frames by successively rolling x by j*tau (j=0..N-1),
+    then return the mean. tau is integer; torch.roll is circular.
+    """
+    L = x.numel()
+    acc = torch.zeros_like(x)
+    for j in range(T):
+        acc += torch.roll(x, shifts=(j * tau) % L, dims=0)
+    return acc / N
 
 # Signal: rectangular pulse (Heaviside window)
 M = 256
@@ -87,7 +84,10 @@ To better understand this, let's express the integration operation in terms of a
 For a given shift $\tau$ the integration operation is equivalent to 
 <div>
 $$
-\overline{I}[x] = \frac{1}{T}\sum_{t=0}^{N-1} I[x - t\tau] = \frac{1}{T}\sum_{t=0}^{N-1} I[x] \cdot \delta [x - t\tau] \overset{\text{linearity}}\propto I[x] \star h_{\tau}
+\begin{aligned}
+\overline{I}[x] &= \frac{1}{T}\sum_{t=0}^{N-1} I[x - t\tau] = \frac{1}{T}\sum_{t=0}^{N-1} I[x] \cdot \delta [x - t\tau] \\[4pt]
+&\overset{\text{linearity}}\propto I[x] \star h_{\tau}
+\end{aligned}
 $$
 </div>
 Where $\star$ is the cross-correlation operation, and $h_{\tau}(x)= \sum_{t=0}^{N-1} \delta [x - t\tau]$ (*note*: this kernel is known as a *Dirac comb*). 
@@ -130,8 +130,12 @@ Let's show this in action: using the Fourier shift theorem, we have
 
 <div>
 $$
-X_2(e^{j\omega}) = e^{-j\omega n_0}\cdot X(e^{j\omega}) \overset{PHAT}\implies \frac{X_2 \cdot \overline{X_1}}{|X_2 \cdot \overline{X_1}|} = \frac{ e^{-j\omega n_0}X_1 \cdot \overline{X_1}}{|e^{-j\omega n_0}X_1 \cdot \overline{X_1}|} \overset{unity}= \frac{ e^{-j\omega n_0}|X_1|^2}{|X_1|^2} =  e^{-j\omega n_0} 
-$$ 
+\begin{aligned}
+X_2(e^{j\omega}) &= e^{-j\omega n_0}\cdot X(e^{j\omega}) \\[4pt]
+\frac{X_2 \cdot \overline{X_1}}{|X_2 \cdot \overline{X_1}|} &\overset{\text{PHAT}}= \frac{ e^{-j\omega n_0}X_1 \cdot \overline{X_1}}{|e^{-j\omega n_0}X_1 \cdot \overline{X_1}|} \\[4pt]
+&\overset{\text{unity}}= \frac{ e^{-j\omega n_0}|X_1|^2}{|X_1|^2} =  e^{-j\omega n_0}
+\end{aligned}
+$$
 </div>
 where $\overline{X_1}$ is the complex conjugate of $X_1$. Now the final step to compute $n_0$ is to take the inverse Fourier transform
 <div>
@@ -156,16 +160,15 @@ To get a better understanding of what's happening in the final step of the algor
 
 <div>
 $$
+\begin{aligned}
 \Re\{x_{\text{PHAT}}[n]\}
-= \Re\!\left\{
-\frac{1}{N}\sum_{k=0}^{N-1}
-e^{-j\omega_k n_0}\, e^{j\omega_k n}
-\right\}
-= \Re\!\left\{
+&= \Re\!\left\{
 \frac{1}{N}\sum_{k=0}^{N-1}
 e^{j\omega_k (n - n_0)}
-\right\} \overset{trig.} = 
-\frac{1}{N}\Re(\sum_{k=0}^{N-1}\cos{(\omega_k \Delta n)} + j\sin{(\omega_k \Delta n)}) = \frac{1}{N}\sum_{k=0}^{N-1}\cos{(\omega_k \Delta n)}
+\right\} \\[4pt]
+&\overset{\text{trig.}}=
+\frac{1}{N}\sum_{k=0}^{N-1}\cos{(\omega_k \Delta n)}
+\end{aligned}
 $$
 </div>
 
@@ -225,82 +228,72 @@ import matplotlib.pyplot as plt
 
 
 def fejer_weights(C: torch.Tensor):
-"""
-Fejér-type weights for a 1D spectrum C_alpha of shape (K,).
-Highest weight at DC (index 0), decaying linearly to ~0 at the highest index.
-"""
-K = C.shape[0]
-device = C.device
-k = torch.arange(K, device=device)
-# normalized distance from DC [0..1]
-return 1.0 - k / (K - 1 + 1e-8)
+    """
+    Fejér-type weights for a 1D spectrum C_alpha of shape (K,).
+    Highest weight at DC (index 0), decaying linearly to ~0 at the highest index.
+    """
+    K = C.shape[0]
+    device = C.device
+    k = torch.arange(K, device=device)
+    return 1.0 - k / (K - 1 + 1e-8)
 
 def phat_objective(x1: torch.Tensor,
-                      x2: torch.Tensor,
-                      tau: torch.Tensor,
-                      exclude_dc: bool = True,
-                      method: str = "phat",
-                     ) -> torch.Tensor:
-"""
-f(tau) = Re{ mean_k [ C_normed[k] * exp(-i*ω_k*tau) ] }   (method="phat")
-or a Fejér-weighted surrogate (method="fejer").
-We maximize f(tau) over τ.
-"""
-assert x1.shape == x2.shape and x1.ndim == 1
+                   x2: torch.Tensor,
+                   tau: torch.Tensor,
+                   exclude_dc: bool = True,
+                   method: str = "phat",
+                  ) -> torch.Tensor:
+    """
+    f(tau) = Re{ mean_k [ C_normed[k] * exp(-i*ω_k*tau) ] }   (method="phat")
+    or a Fejér-weighted surrogate (method="fejer").
+    We maximize f(tau) over τ.
+    """
+    assert x1.shape == x2.shape and x1.ndim == 1
 
-M = x1.shape[0]
-k = torch.arange(M, dtype=x1.dtype, device=x1.device)
-omega = 2 * math.pi * k / M
+    M = x1.shape[0]
+    k = torch.arange(M, dtype=x1.dtype, device=x1.device)
+    omega = 2 * math.pi * k / M
 
-X1 = torch.fft.fft(x1)
-X2 = torch.fft.fft(x2)
-CPS = X1 * torch.conj(X2)
-mag = torch.clamp(torch.abs(CPS), min=1e-12)
-C_normed = CPS / mag     
+    X1 = torch.fft.fft(x1)
+    X2 = torch.fft.fft(x2)
+    CPS = X1 * torch.conj(X2)
+    mag = torch.clamp(torch.abs(CPS), min=1e-12)
+    C_normed = CPS / mag
 
-if exclude_dc:
-# ignore DC energy component
-C_normed = C_normed[1:]
-omega   = omega[1:]
+    if exclude_dc:
+        C_normed = C_normed[1:]
+        omega = omega[1:]
 
-C_shifted = C_normed * torch.exp(-1j * omega * tau)  # minus → peak at true shift 
-if method == "fejer":
-# compute Fejer weights in frequency domain
-weights = fejer_weights(C_shifted)
-C_shifted *= weights
+    C_shifted = C_normed * torch.exp(-1j * omega * tau)
+    if method == "fejer":
+        weights = fejer_weights(C_shifted)
+        C_shifted *= weights
 
-dirichlet = torch.real(C_shifted)
-return dirichlet.mean()
+    dirichlet = torch.real(C_shifted)
+    return dirichlet.mean()
 
-# -----------------------------
-# Inspect objective landscape
-# -----------------------------
 def plot_kernel_comparison(ax, taus_grid, x1, x2):
-"""Plot Dirichlet vs Fejér kernel comparison on single axes with alpha=1, no interpolation"""
-dirichlet_vals = torch.tensor([float(phat_objective(x1, x2, t, method="dirichlet").detach())
-                           for t in taus_grid])
-ax.plot(taus_grid.numpy(), dirichlet_vals.numpy(), label='Dirichlet Kernel', linewidth=3)
+    """Plot Dirichlet vs Fejér kernel comparison."""
+    dirichlet_vals = torch.tensor([float(phat_objective(x1, x2, t, method="dirichlet").detach())
+                                   for t in taus_grid])
+    ax.plot(taus_grid.numpy(), dirichlet_vals.numpy(), label='Dirichlet Kernel', linewidth=3)
 
-fejer_vals = torch.tensor([float(phat_objective(x1, x2, t, method="fejer").detach())
-                           for t in taus_grid])
-ax.plot(taus_grid.numpy(), fejer_vals.numpy(), label='Fejér Kernel', linewidth=3)
+    fejer_vals = torch.tensor([float(phat_objective(x1, x2, t, method="fejer").detach())
+                               for t in taus_grid])
+    ax.plot(taus_grid.numpy(), fejer_vals.numpy(), label='Fejér Kernel', linewidth=3)
 
-# Add true shift line
-ax.axvline(0, linestyle="--", color='red', label="True Shift τ*", alpha=0.8, linewidth=2)
+    ax.axvline(0, linestyle="--", color='red', label="True Shift τ*", alpha=0.8, linewidth=2)
+    ax.set_xlabel("Time Shift τ (samples)", fontsize=12)
+    ax.set_ylabel("Objective Function f(τ)", fontsize=12)
+    ax.set_title("Objective comparison", fontsize=14, fontweight='bold')
+    ax.grid(True, alpha=0.3)
+    ax.legend(fontsize=11)
 
-ax.set_xlabel("Time Shift τ (samples)", fontsize=12)
-ax.set_ylabel("Objective Function f(τ)", fontsize=12)
-ax.set_title("Objective comparison", fontsize=14, fontweight='bold')
-ax.grid(True, alpha=0.3)
-ax.legend(fontsize=11)
-
-# ground-truth shift of 0 for simple plotting
-x_shifted=x
-# Create plot
+x_shifted = x
 plt.figure(figsize=(14, 8))
 ax = plt.gca()
-taus_grid = torch.linspace(-6.0, 6.0, 201, dtype=torch.float64)  # Higher resolution
-plot_kernel_comparison_single(ax, taus_grid, x1, x2)
+taus_grid = torch.linspace(-6.0, 6.0, 201, dtype=torch.float64)
+plot_kernel_comparison(ax, taus_grid, x1, x2)
 plt.tight_layout()
 plt.show()
 ```
@@ -314,9 +307,11 @@ Given this assumption, how can we further improve our PHAT-based optimization ob
 
 The standard Generalized Cross-Correlation (GCC) function is defined in the frequency domain as:
 
-<div> $$
+<div> 
+$$
 R_{GCC}(\tau) = \int_{-\infty}^{\infty} \Psi(f) G_{xy}(f) e^{j2\pi f\tau}  df
-$$ </div> 
+$$ 
+</div> 
 
 where:
 - $ G_{xy}(f) $ is the cross-power spectrum
@@ -336,35 +331,34 @@ Let's see the effect of varying this alpha on our optimization objective, slight
 ```python
 
 def gcc_phat_objective(x1: torch.Tensor,
-                      ... # as previously
-                      alpha : float = 1.0
-                     ) -> torch.Tensor:
-"""
-f(tau) = Re{ mean_k [ C_normed[k] * exp(-i*ω_k*tau) ] }   (method="phat")
-or a Fejér-weighted surrogate (method="fejer").
-We maximize f(tau) over τ.
-"""
-# as previously
-...
-mag = torch.clamp(torch.abs(CPS), min=1e-12) ** alpha
-... # as previously
-return dirichlet.mean()
+                       ... # as previously
+                       alpha: float = 1.0
+                      ) -> torch.Tensor:
+    """
+    f(tau) = Re{ mean_k [ C_normed[k] * exp(-i*ω_k*tau) ] }   (method="phat")
+    or a Fejér-weighted surrogate (method="fejer").
+    We maximize f(tau) over τ.
+    """
+    # as previously
+    ...
+    mag = torch.clamp(torch.abs(CPS), min=1e-12) ** alpha
+    ... # as previously
+    return dirichlet.mean()
 
 
 def plot_kernel_comparison(ax, taus_grid, x1, x2, alpha=1):
-"""Plot Dirichlet vs Fejér kernel comparison on single axes with alpha=1, no interpolation"""
-dirichlet_vals = torch.tensor([float(gcc_phat_objective(x1, x2, t, method="dirichlet", alpha=alpha).detach())
-                           for t in taus_grid])
-ax.plot(taus_grid.numpy(), dirichlet_vals.numpy(), label='Dirichlet Kernel', linewidth=3)
+    """Plot Dirichlet vs Fejér kernel comparison."""
+    dirichlet_vals = torch.tensor([float(gcc_phat_objective(x1, x2, t, method="dirichlet", alpha=alpha).detach())
+                                   for t in taus_grid])
+    ax.plot(taus_grid.numpy(), dirichlet_vals.numpy(), label='Dirichlet Kernel', linewidth=3)
 
-fejer_vals = torch.tensor([float(gcc_phat_objective(x1, x2, t, method="fejer", alpha=alpha).detach())
-                           for t in taus_grid])
-... # as previously
+    fejer_vals = torch.tensor([float(gcc_phat_objective(x1, x2, t, method="fejer", alpha=alpha).detach())
+                               for t in taus_grid])
+    ... # as previously
 
-# Create plot
 plt.figure(figsize=(14, 8))
 ax = plt.gca()
-taus_grid = torch.linspace(-6.0, 6.0, 201, dtype=torch.float64)  # Higher resolution
+taus_grid = torch.linspace(-6.0, 6.0, 201, dtype=torch.float64)
 plot_kernel_comparison(ax, taus_grid, x1, x2, alpha=0.7)
 plt.tight_layout()
 plt.show()
@@ -374,23 +368,22 @@ plt.show()
 
 Now the Fejér-smoothed objective is starting to look like a decent optimization objective! Note that there are additional improvements which can be made to reduce some swells (high-frequency components) in the optimization landscape. For example- what would be the effect of integrating the *Fejér* kernels as we previously did to the Dirichlets (*Hint*- integration is a smoothing operation, and thus a low-pass filter)?
 
-### GCC-PHAT for noisy signal sequences
-Suppose that we are working with a video consisting of *noisy* frames, where the noise is static (we will see later what and how this has to do with occlusion). 
-This means that we model each noisy frame as $I_t = W^t(I_0, \tau^*) + V$, with $V$ representing the constant noise mask. 
-Now, we want to estimate a cohesive-translation motion model (same translation between each pair of frames) over this video. 
+### GCC-PHAT for video sequences
 
-A naive approach would be to compute phase-correlation between a given pair of images. Note that for *any* such pair some variant of GCC-PHAT would yield a translation of $\tau=0$ (why?).
-Instead, we can use our knowledge from this [previous blogpost](https://ikavodo.github.io/optimization_pt-3) regarding the moving-average filter (specifically that it is *optimal* for denoising) to integrate our video into a *pair* of integrated images, and then use a variant of GCC-PHAT over this pair!
+Our original variance objective corresponds to $\alpha=0$ — it uses only energy (magnitude) and ignores phase information entirely. The sections above showed that pure phase ($\alpha=1$) gives a Dirichlet-kernel objective that is too oscillatory to optimize reliably, but that Fejér-smoothed GCC-PHAT at an intermediate $\alpha$ can strike a useful balance between sharpness and smoothness. Can we bring this to bear on our optimization?
 
-We obtain a pair of integrated images by partitioning our video into even and odd frame subsets, and then compute integrated images in the following way:
+The key insight is that applying the moving average to even- and odd-indexed frame subsets separately produces two integrated images whose Fourier representations are related by a phase factor encoding the true shift $\tau^*$ — information that the variance objective (operating on magnitudes) was throwing away. GCC-PHAT on this pair lets us exploit that phase relationship directly.
+
+We compute the two integrated images as follows:
 <div>
 $$
-I_{even} = \frac{2}{N}\sum_{t=2m}^{N-1} W^t(I_t, \tau) = \frac{2}{N}\sum_{t=2m}^{N-1} e^{-j\omega t\phi} \cdot (e^{-j\omega t\phi^*}  \mathcal{F} \lbrace I_0 \rbrace + \mathcal{F} \lbrace V \rbrace) \\ 
-= \frac{2}{N}(\sum_{m=0}^{\frac{N-1}{2}} e^{-j\omega 2m\Delta \phi} \mathcal{F} \lbrace I_0 \rbrace + \sum_{m=0}^{\frac{N-1}{2}} e^{-j\omega 2m\phi} \mathcal{F} \lbrace V \rbrace) = \left( \mathcal{H_{\frac{N}{2}}}(2\Delta \phi) \cdot \mathcal{F} \lbrace I_0 \rbrace + \mathcal{H_{\frac{N}{2}}}(2\phi) \cdot \mathcal{F} \lbrace V \rbrace \right)
+\begin{aligned}
+I_{even} &= \frac{2}{N}\sum_{t=2m}^{N-1} e^{-j\omega t\phi} \cdot e^{-j\omega t\phi^*} \mathcal{F} \lbrace I_0 \rbrace \\[4pt]
+&= \mathcal{H_{\frac{N}{2}}}(\Delta \phi) \cdot \mathcal{F} \lbrace I_0 \rbrace
+\end{aligned}
 $$
 </div>
-where $\phi = \frac{\tau}{W}, \quad \Delta \phi = \frac{\tau - \tau^*}{W}$ and
-$ \mathcal{H_{\frac{N}{2}}}(2\phi)$ is a moving-average filter of order $\frac{N}{2}$ (see [previous blog-post](https://ikavodo.github.io/optimization_pt-3/)) with frequency responses parameterized by $\phi$.
+where $\phi = \frac{\tau}{W}, \quad \Delta \phi = \frac{\tau - \tau^*}{W}$ and $\mathcal{H_{\frac{N}{2}}}$ is a moving-average filter of order $\frac{N}{2}$ (see [previous blog-post](https://ikavodo.github.io/optimization_pt-3/)) with frequency response parameterized by $\Delta\phi$.
 
 $I_{odd}$ is constructed similarly over frames with odd time-steps, with the only exception 
 <div>
@@ -400,9 +393,9 @@ $$
 </div> 
 Meaning that all odd-frames are translated back relatively to the *first odd frame* (why we do it this way will become clear soon).
 
-Note that of the two moving-average filters derived in the equation, $\mathcal{H_{\frac{N}{2}}}(2\Delta \phi)$ depends on the ground-truth shift, while $\mathcal{H_{\frac{N}{2}}}(2\phi)$ doesn't, meaning that noise reduction is *independent* of the ground-truth shift. On the other hand, for 'zero-motion' ($\tau=0$) noise energy is maximised, which creates a *spurious* (false) maxima in our optimization problem. This is the reason why computing phase correlation between any pair of noisy images doesn't work in this case! 
+Note that $\mathcal{H_{\frac{N}{2}}}(\Delta\phi)$ is maximized at $\Delta\phi = 0$, i.e.\ at the true motion $\tau = \tau^*$.
 
-Now coming back to our integrated images, note that 
+Now, note that 
 <div>
 $$
 I_{even} = e^{-j\omega \phi^*} \cdot I_{odd}
@@ -414,40 +407,41 @@ From here on computing GCC-PHAT is quite straightforward:
 
 <div>
 $$
-\frac{I_{odd} \cdot \overline{I_{even}}}{|I_{odd} \cdot \overline{I_{even}}|^\alpha} = \frac{e^{-j\omega \phi^*} I_{even} \cdot \overline{I_{even}}}{|e^{-j\omega \phi^*} I_{even} \cdot \overline{I_{even}}|^\alpha} = \frac{ e^{-j\omega \phi^*}|I_{even}|^2}{|I_{even}|^{2\alpha}} =  |I_{even}|^{2(1-\alpha)}e^{-j\omega \phi^*} 
+\begin{aligned}
+\frac{I_{odd} \cdot \overline{I_{even}}}{|I_{odd} \cdot \overline{I_{even}}|^\alpha}
+&= \frac{e^{-j\omega \phi^*} I_{even} \cdot \overline{I_{even}}}{|e^{-j\omega \phi^*} I_{even} \cdot \overline{I_{even}}|^\alpha} \\[4pt]
+&= \frac{ e^{-j\omega \phi^*}|I_{even}|^2}{|I_{even}|^{2\alpha}} =  |I_{even}|^{2(1-\alpha)}e^{-j\omega \phi^*}
+\end{aligned}
 $$
 </div> 
 Let's plug in different values for $\alpha$! Starting with $\alpha=0$ we get
 
 <div>
 $$
-|I_{even}|^2\cdot e^{-j\omega \phi^*} = |\mathcal{H_{\frac{N}{2}}}(\Delta \phi) \cdot \mathcal{F} \lbrace I_0 \rbrace + \mathcal{H_{\frac{N}{2}}}(\phi) \cdot \mathcal{F} \lbrace V \rbrace|^2 * e^{-j\omega \phi^*}
+|I_{even}|^2\cdot e^{-j\omega \phi^*} = \left|\mathcal{H_{\frac{N}{2}}}(\Delta \phi) \cdot \mathcal{F} \lbrace I_0 \rbrace\right|^2 \cdot e^{-j\omega \phi^*}
 $$
 </div>
-Note that optimizing over the magnitude of this signal 
-<div>
-$$
-\sum_{k \neq 0} ||\mathcal{H_{\frac{N}{2}}}(\Delta \phi) \cdot \mathcal{F} \lbrace I_0 \rbrace + \mathcal{H_{\frac{N}{2}}}(\phi) \cdot \mathcal{F} \lbrace V \rbrace|^2 * e^{-j\omega \phi^*}| = \sum_{k \neq 0} |\mathcal{H_{\frac{N}{2}}}(\Delta \phi) \cdot \mathcal{F} \lbrace I_0 \rbrace + \mathcal{H_{\frac{N}{2}}}(\phi) \cdot \mathcal{F} \lbrace V \rbrace|^2
-$$
-</div>
-is equivalent to our original optimization objective, up to the order of the moving average filter! It remains to compare these two (next blogpost). 
 
-As N grows we have  
+Optimizing over the magnitude of this signal,
+
 <div>
 $$
-\lim_{N \to +\infty} |\mathcal{H_{\frac{N}{2}}}(\Delta \phi) \cdot \mathcal{F} \lbrace I_0 \rbrace + \mathcal{H_{\frac{N}{2}}}(\phi) \cdot \mathcal{F} \lbrace V \rbrace|^2 * e^{-j\omega \phi^*} \approx \lim_{N \to +\infty} |\mathcal{H_{\frac{N}{2}}}(\Delta \phi) \cdot \mathcal{F} \lbrace I_0 \rbrace + \frac{\mathcal{F} \lbrace V \rbrace}{\sqrt{\frac{N}{2}}}| * e^{-j\omega \phi} \\
-= |\mathcal{H_\infty}(\Delta \phi) \cdot \mathcal{F} \lbrace I_0 \rbrace| * e^{-j\omega \phi}
+\sum_{k \neq 0} \left|\mathcal{H_{\frac{N}{2}}}(\Delta \phi) \cdot \mathcal{F} \lbrace I_0 \rbrace\right|^2,
 $$
 </div>
-Using the fact that the moving-average filter reduces noise by approximately the square-root of its order (see explanation elsewhere), meaning that the effect of the noise-component becomes negligable compared to that of the signal. Good news for us!
+
+is equivalent to our original variance objective up to the order of the moving-average filter. 
 
 ### Connecting the two optimization objectives
 
 We can "revert" our GCC-PHAT objective into the *exact* energy (variance) objective by computing the integrated image from integrated pairs by
 <div>
 $$
-\sum_{k \neq 0} |\frac{I_{even} + e^{-j\omega \phi} \cdot I_{odd}}{2}|^2 = \sum_{k \neq 0}  |\frac{1}{N}  \cdot \left( \sum_{t=2m}^{N-1} W^t(I_t, \tau) + e^{-j\omega \phi} \cdot \sum_{t=2m+1}^{N-1} W^{t-1}(I_t, \tau)\right)|^2 \\
-= \sum_{k \neq 0} \frac{1}{N} \cdot |\sum_{t=0}^{N-1} W^t(I_t, \tau)|^2 = \sum_{k \neq 0} |\overline{I}|^2 = f_{obj}(\tau)
+\begin{aligned}
+\sum_{k \neq 0} \left|\frac{I_{even} + e^{-j\omega \phi} \cdot I_{odd}}{2}\right|^2
+&= \sum_{k \neq 0}  \left|\frac{1}{N} \sum_{t=0}^{N-1} W^t(I_t, \tau)\right|^2 \\[4pt]
+&= \sum_{k \neq 0} |\overline{I}|^2 = f_{obj}(\tau)
+\end{aligned}
 $$
 </div> 
 
@@ -455,74 +449,8 @@ We've essentially created a link between our two optimization objectives, where 
 
 ## Conclusion
 
-We now have "pure" energy (magnitude) and phase "flavors" of our GCC-PHAT objective, obtainable by choosing spectral-weighting factors $\alpha\in\lbrace {0,1} \rbrace$ respectively. Comparing these two objectives, the first maximizes coherent energy, while in the second the phase component is used to align a sharp correlation peak, which is smoothed by the Fejér kernel (recall it is the 'dual' of the bilinear interpolation weights!).
+We now have "pure" energy (magnitude) and phase "flavors" of our GCC-PHAT objective, obtainable by choosing spectral-weighting factors $\alpha\in\lbrace {0,1} \rbrace$ respectively. The first maximizes coherent energy, while in the second the phase component is used to align a sharp correlation peak smoothed by the Fejér kernel (recall it is the 'dual' of the bilinear interpolation weights). The reversion shows both trace back to the same variance objective via the integrated even/odd pair.
 
-The need for a trade-off comes up in the case of noisy signals, in which the additive nature of the Fourier transform causes both phase *and* magnitude information to be offset/randomized by the noisy component. It makes sense then in this case to utilize a mix of *both* when computing the ground truth shift. 
-
-We'll compare these different objectives empirically in the next blogpost.
+The next post introduces an additive noise/occlusion model, analyzes the competition structure it creates in the objective, and uses that analysis to motivate a decoupled 4DoF pipeline.
 
 Until then!
-
-<!-- The weights then "boost" higher-magnitude frequency bins, which in turn have higher relative SNR, giving us 'more' information from the clean signal component. Note that intuitively this is a similar idea to that of the classical *Wiener filter*, where the latter estimates the clean vs. noisy signal components to 'hand-craft' weights per frequency bin[^1].   -->
-
-<!-- 
-### Connecting the two optimization objectives
-Recall the previous frequency-domain objective (implemented with bilinear interpolation)
-<div> 
-$$ \mathcal{F} \lbrace {f_{\text{obj}}} \rbrace = \sum_{k \neq 0} |\mathcal{F}\lbrace \overline{I} \rbrace \cdot \mathcal{F}\lbrace tri \rbrace|^2 = \sum_{k \neq 0} |\mathcal{H_N}(\Delta \phi) \cdot \mathcal{F} \lbrace I_0 \rbrace|^2  \cdot \left(\frac{\sin{\frac{N\omega_k}{2}}}{\frac{\omega_k}{2}}\right)^2
-$$ 
-</div>
-
-And compare it to our current objective (implementing Fejer smoothing using frequency-domain weights)
-<div>
-$$
-\Re\!\left\{
-\sum_{k}
-\left(1-{\frac {|k|}{N}}_{|k|< N-1}\right) \cdot |\mathcal{H_{\frac{N}{2}}}(\Delta \phi) \cdot \mathcal{F} \lbrace I_0 \rbrace| \cdot e^{j\omega_k \Delta \phi}\
-\right\} = \Re\!\left\{
-\sum_{k}
-\left(1-{\frac {|k|}{N}}_{|k|< N-1}\right) \cdot |\mathcal{H_{\frac{N}{2}}}(\Delta \phi) \cdot \mathcal{F} \lbrace I_0 \rbrace| \cdot e^{j\omega_k \Delta \phi}\
-\right\}
-$$
-</div>
-
-Now recall the duality 
-<div>
-$$
-{\frac {1}{N}}\left({\frac {\sin({\frac {Nx}{2}})}{\sin({\frac {x}{2}})}}\right)^{2} \overset{\text{FT}}{\longleftrightarrow} \left(1-{\frac {|k|}{N}}_{|k|< N-1}\right) 
-$$
-</div>
-
-Meaning that we are replacing bilinear interpolation with its dual operator! Also note the difference in order of the low-pass filter, and the fact that we are optimizing over the signal *magnitude*, as opposed to *energy*. In other words, we see that these two objectives implement similar *ideas* by means of dual concepts between domains. -->
-<!-- 
-## Postlude: signal-processing vs. optimization approaches
-
-Having now established some kind of "equivalence" between our GCC-PHAT and previous optimization objectives, let's present a question: 
-
-> *Given two equivalent approaches to solve a given problem, which is preferable, and/or what is the benefit of using each?*
-
-We attempt to address this at the moment from two different perspectives, though more considerations are on the way.
-
-| Aspect | DSP View | Optimization View |
-|--------|----------|------------------|
-| **Subpixel Alignment** | Requires fine-tuning or various interpolation techniques. | Optimizer and well-conditioned loss landscape handle automatically. |
-| **Computational Efficiency** | Need to sample the entire time-domain grid (IFFT). | Parseval's theorem allows computation in frequency domain, bypassing IFFT. Good initial estimates yield fewer iterations ($O(M)$ vs. $O(M\log{M})$). |
--->
-<!-- 
-### Additional Considerations
-
-**Window-Based Computation**:
-- Knowledge of informative sub-regions or windows within frames enables substantial computation savings
-- For sufficiently small windows, time-domain optimization becomes practical, thus adds another layer of flexibility to the optimization approach
-
-**Hybrid Approach**:
-- Combine both tools: obtain rough estimate via GCC-PHAT, then fine-tune with optimization (various optimization schemes have already been proposed) [^1]
-- **Note**: This approach is computationally more expensive than either method alone, and should thus be used judiciously based on specific requirements
--->
-<!-- 
-We will compare these two approaches more concretely in the next blog-post, in which we also introduce the notion of *occlusion*, and examine its effect on the performances of both methods.
-
-Until then! -->
-
-<!-- ## Footnotes
-[^1]: We are in essence using a simple *heuristic* instead of hand-crafting bin weights. This idea pops up plenty in statistical signal-processing (see [this](https://en.wikipedia.org/wiki/Inverse-variance_weighting)) -->

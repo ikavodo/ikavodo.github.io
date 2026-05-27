@@ -1,5 +1,5 @@
 ---
-title: "Analog photography"
+title: "First Analog Film Roll"
 layout: post
 date: 2025-9-10 14:15
 image: 
@@ -9,7 +9,7 @@ tags:
 star: true
 category: blog
 author: Ido Akov
-description: "Analog photography"
+description: "Photos from my first developed roll of analog film."
 ---
 
 I just developed my first roll of analog film! This project was a long time in the making.

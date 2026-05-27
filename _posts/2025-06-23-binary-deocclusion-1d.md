@@ -1,5 +1,5 @@
 ---
-title: "1D deocclusion"
+title: "Binary De-occlusion in 1D: A Clean Formulation"
 layout: post
 date: 2025-6-23 13:15
 image: 
@@ -10,7 +10,7 @@ tags:
 star: true
 category: blog
 author: Ido Akov
-description: "1D deocclusion"
+description: "A minimal 1D binary formulation of the de-occlusion inverse problem, with a Python solution."
 ---
 
 This is a 1D binary formulation of the problem of de-occlusion, namely given a time-wise shifted vector (representing the object in motion) and a static masking vector (representing the occluder), we want to separate and identify the two.

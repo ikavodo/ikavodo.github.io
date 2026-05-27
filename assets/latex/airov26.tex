@@ -1,0 +1,189 @@
+% Adapted from the NeurIPS Conference:
+% - Any appearance of "neurips_2023" was replaced by "airov26".
+% - The footer was adapted accordingly.
+% - A package option "anonymous" was added.
+% - hyperref was moved to airov.sty, with specific customization
+% - For the [final] version the page number was removed.
+\documentclass{article}
+
+% if you need to pass options to natbib, use, e.g.:
+%     \PassOptionsToPackage{numbers, compress}{natbib}
+% before loading airov26
+
+\PassOptionsToPackage{numbers,sort&compress}{natbib}
+
+\usepackage[final]{airov26}
+\usepackage{graphicx}
+\usepackage{caption}
+\usepackage{placeins}
+
+\captionsetup[figure]{font={small,it}}
+\setlength{\abovecaptionskip}{3pt}
+\setlength{\belowcaptionskip}{0pt}
+% if your workshop requires anonymous submission, add the [anonymous] option:
+% \usepackage[anonymous]{airov26}
+
+
+% to compile a preprint version, e.g., for submission to arXiv, add the
+% [preprint] option:
+% \usepackage[preprint]{airov26}
+
+
+% to compile a camera-ready version, add the [final] option, e.g.:
+% \usepackage[final]{airov26}
+
+
+% to avoid loading the natbib package, add option nonatbib:
+% \usepackage[nonatbib]{airov26}
+
+
+\usepackage[utf8]{inputenc} % allow utf-8 input
+\usepackage[T1]{fontenc}    % use 8-bit T1 fonts
+\usepackage{booktabs}       % professional-quality tables
+\usepackage{amsfonts}       % blackboard math symbols
+\usepackage{amsmath}        % align environment and more
+\usepackage{nicefrac}       % compact symbols for 1/2, etc.
+\usepackage{microtype}      % microtypography
+\usepackage{xcolor}         % colors
+
+
+\title{Fourier contrast optimization for occluded motion estimation}
+
+% The \author macro works with any number of authors. There are two commands
+% used to separate the names and addresses of multiple authors: \And and \AND.
+%
+% Using \And between authors leaves it to LaTeX to determine where to break the
+% lines. Using \AND forces a line break at that point. So, if LaTeX puts 3 of 4
+% authors names on the first line, and the last on the second line, try using
+% \AND instead of \And before the third author name.
+
+\author{%
+Ido Akov$^{1,2}$ \And Roman Pflugfelder$^{1,2}$ \And Daniel Cremers$^{1}$\\
+$^{1}$Technical University of Munich (TUM)\quad
+$^{2}$Austrian Institute of Technology (AIT)\\
+\texttt{\{ido.akov, roman.pflugfelder, cremers\}@tum.de}
+}
+\begin{document}
+
+\maketitle
+\begin{abstract}
+Fragmented occlusion, as encountered in through-foliage observation, makes monocular motion estimation difficult because the target is visible only through sparse, discontinuous image fragments. We estimate motion by warping frames under a parametric model and maximizing the contrast of their integrated image. Although effective for 2DoF translation, this objective becomes ill-conditioned for 4DoF similarity motion. To analyze this, we derive a Fourier-domain reformulation that exposes the optimization structure and shows that static occlusion biases the objective toward zero motion. This motivates a decoupled 4DoF pipeline in which rotation and scale are estimated separately from translation. On synthetic videos with controlled fragmented occlusion, the Fourier formulation matches the spatial baseline at low-to-mid occlusion while converging faster, and the decoupled pipeline restores reliable translation recovery where joint 4DoF optimization fails.
+\end{abstract}
+
+\section{Introduction}
+Fragmented occlusion \cite{pegoraro2020} arises when an object is visible only through disconnected foreground gaps, as in observation through foliage, fences, or clutter. The visible evidence is sparse and spatially discontinuous, making correspondence-based motion estimation unreliable: classical optical flow and local registration methods \cite{LucasKanade,horn1981optical,black1996robust} rely on brightness constancy and locally coherent support, both of which become fragile when the target never appears as a large connected region. We therefore consider monocular motion estimation from image sequences in which the object is never fully visible in any single frame, and motion must be inferred without reliable local matches.
+
+An alternative is to estimate motion by warping and integrating observations under a low-dimensional parametric model. Variants of this principle appear in direct parametric alignment \cite{irani1992}, synthetic-aperture reconstruction \cite{vaish2006cvpr}, and contrast-maximization methods for event cameras \cite{Gallego_2018}. These approaches avoid explicit correspondences, but they do not directly address similarity motion under persistent fragmented occlusion in a monocular setting with a single global motion model.
+
+Here we revisit contrast-based motion estimation under fragmented occlusion. The formulation works well for 2DoF translation, but becomes ill-conditioned for 4DoF similarity motion because repeated warp composition couples translation, rotation, and scale. We derive a Fourier-domain reformulation that makes the objective interpretable as a competition between moving-object alignment and static occlusion, and use this perspective to explain the instability of joint 4DoF optimization. Guided by this structure, we decouple the estimation: rotation and scale are first recovered by maximizing the same contrast objective in log-polar Fourier coordinates, and translation is then estimated separately using the same objective.
+
+\section{Problem formulation}
+\subsection{Spatial domain}
+Let $I_0,\dots,I_{T-1}$ be a grayscale video sequence with $I_t \in \mathbb{R}^{M\times N}$, and let $W(\cdot,\theta)$ denote a parametric warp with motion parameters $\theta$. We align each frame before temporal integration:
+\begin{align}
+\bar{I}(\theta)=\frac{1}{T}\sum_{t=0}^{T-1} W^t(I_t,\theta),
+\label{eq:int_img}
+\end{align}
+where $W^t$ denotes the $t$-fold application of the motion model. We then define
+\begin{align}
+f_{\mathrm{opt}}(I_{[0\dots T-1]},\theta)
+:=
+\mathrm{Var}\!\left(\bar{I}(\theta)\right),
+\qquad
+\theta^\star=\arg\max_\theta f_{\mathrm{opt}}(I_{[0\dots T-1]},\theta).
+\label{eq:fopt_spatial}
+\end{align}
+Correct motion compensation sharpens the target in $\bar{I}(\theta)$, while static occluders and background become blurred by averaging. In the 2DoF setting, $\theta=[\tau_x,\tau_y]^\top$ is a coherent translation. In the 4DoF setting, we use a similarity model with translation, rotation, and isotropic scale.
+
+\subsection{Fourier domain}
+We first consider the translation case. By the Fourier shift theorem and linearity, the integrated image becomes
+\begin{align}
+\mathcal{F}\{\bar{I}(\theta)\}
+=
+\frac{1}{T}\sum_{t=0}^{T-1} e^{-j\omega t \phi(\theta)} \,\mathcal{F}\{I_t\}.
+\label{eq:ft_int_compact}
+\end{align}
+where
+\begin{align}
+\phi(\theta):=\frac{\tau_x}{M}+\frac{\tau_y}{N}.
+\end{align}
+
+We model each frame as the sum of a moving component and a static occlusion component,
+\begin{align}
+I_t = W^t(I_{\mathrm{mov}},\theta^\star) + I_{\mathrm{occ}},
+\end{align}
+where $I_{\mathrm{mov}}$ denotes the target appearance, $I_{\mathrm{occ}}$ the static occluder, and $\theta^\star$ the true motion. Substituting into \eqref{eq:ft_int_compact} yields
+\begin{align}
+\mathcal{F}\{\bar{I}(\theta)\}
+=
+H(\Delta\phi)\,\mathcal{F}\{I_{\mathrm{mov}}\}
++
+H(\phi)\,\mathcal{F}\{I_{\mathrm{occ}}\},
+\label{eq:ft_barI_final}
+\end{align}
+with
+\begin{align}
+\Delta\phi := \phi(\theta)-\phi(\theta^\star),\qquad
+H(\psi):=\frac{1-e^{-j\omega T\psi}}{T(1-e^{-j\omega\psi})}.
+\end{align}
+
+Since the variance objective equals non-DC Fourier energy, we obtain
+\begin{align}
+f_{\mathrm{opt}}(I_{[0\dots T-1]},\theta)
+\overset{\mathrm{DFT}}{\leftrightarrow}
+\sum_{(m,n)\neq(0,0)}
+\left|
+H(\Delta\phi)\,\mathcal{F}\{I_{\mathrm{mov}}\}
++
+H(\phi)\,\mathcal{F}\{I_{\mathrm{occ}}\}
+\right|^2.
+\label{eq:fourier_obj}
+\end{align}
+This makes the optimization structure explicit: the moving-object term is maximized at the true motion, whereas the static-occlusion term is maximized at zero motion and therefore biases the objective accordingly. In higher-DoF settings, additional motion parameters further weaken the coherence of the moving term, exacerbating this competition and destabilizing joint optimization.
+
+\section{Motion decoupling for 4DoF}
+The Fourier formulation suggests a natural way to address this instability. In similarity motion, translation is encoded in Fourier phase, while rotation and scale are encoded in Fourier magnitude; after log-polar remapping, the latter become translations in log-polar coordinates \cite{reddy1996fft,egomotion}. This yields a two-stage pipeline. In phase~1, each frame is mapped to Fourier magnitude, remapped to log-polar coordinates, and rotation and scale are estimated by maximizing the same contrast objective over the integrated representations. In phase~2, frames are aligned using the recovered rotation and scale, and the residual translation is estimated by maximizing $f_{\mathrm{opt}}$ in the image or Fourier domain. This separation prevents rotation and scale errors from being absorbed as translation drift and stabilizes optimization.
+
+\section{Experiments}
+\subsection{Experimental setup}
+We evaluate the proposed methods on synthetic grayscale videos of simple high-contrast geometric shapes undergoing coherent motion. Each sequence contains \(T=8\) frames of size \(128\times128\). This setup isolates the effect of fragmented occlusion under controlled variation in occlusion density. Fragmented occlusion is simulated by static structured masks, and occlusion density is defined as the fraction of pixels within the motion support covered by the mask. All methods are optimized with Adam, learning rate \(0.1\), and a fixed budget of 200 iterations for 2DoF and for each phase of the 4DoF pipeline.
+
+In the 2DoF setting, motion is restricted to coherent translation and we compare the original spatial-domain contrast objective with its Fourier-domain reformulation. In the 4DoF setting, we compare direct joint optimization against the proposed decoupled pipeline.
+
+\subsection{Evaluation metrics}
+We use translation endpoint error (EPE) as the primary metric:
+\begin{align}
+\mathrm{EPE}=\|\hat{\boldsymbol{\tau}}-\boldsymbol{\tau}^\star\|_2.
+\end{align}
+
+We treat optimization on a single video-motion instance as successful once the recovered translation satisfies \(\mathrm{EPE}<0.5\). We additionally report median time-to-threshold (TTT), i.e.\ the number of optimization steps required to first satisfy this criterion. In the 4DoF setting, our primary goal is not precise estimation of rotation and scale in isolation, but successful motion decoupling: we evaluate whether the recovered rotation and scale are sufficient to remove drift and restore accurate translation recovery.
+
+\begin{figure}[p]
+    \centering
+    \includegraphics[width=0.83\linewidth]{figures/2dof_success_vs_density.png}\\[0.25em]
+    \includegraphics[width=0.83\linewidth]{figures/2dof_ttt_vs_density.png}\\[0.25em]
+    \includegraphics[width=0.83\linewidth]{figures/4dof_success_vs_density.png}
+    \caption{Optimization under fragmented occlusion. Top: 2DoF translation success rate versus occlusion density for spatial and Fourier objectives. Middle: corresponding median time-to-threshold (TTT). Bottom: 4DoF similarity-motion success rate versus occlusion density for joint optimization and the proposed decoupled pipeline.}
+    \label{fig:results_all}
+\end{figure}
+
+\subsection{Results}
+Figure~\ref{fig:results_all} summarizes the main empirical findings. In the 2DoF setting, the Fourier-domain objective closely matches the spatial objective at low occlusion densities, confirming that the reformulation preserves the behavior of the original contrast objective in the translation regime. Over this low-to-mid density range, the Fourier formulation reaches the EPE threshold in fewer iterations and exhibits a flatter time-to-threshold profile. At moderate and heavy occlusion, however, the spatial objective is consistently more robust in success rate, and both methods eventually break down.
+
+The 4DoF experiment reveals a qualitatively different phenomenon. Direct joint optimization of translation, rotation, and scale fails already in the unoccluded case, indicating that the difficulty is not caused by occlusion alone but by the structure of the joint objective itself. This is consistent with the analysis in the previous sections: repeated warp composition couples the motion parameters, so that errors in rotation and scale are absorbed as translation drift. In contrast, the proposed decoupled pipeline succeeds reliably at low occlusion and degrades gradually as density increases. The gap is therefore structural rather than purely quantitative.
+
+\section{Conclusion}
+We introduced a Fourier-domain reformulation of a contrast-maximization objective for motion estimation under fragmented occlusion. The analysis reveals a competition between moving-object alignment and static occlusion, which increasingly biases the objective and leads to instability in joint 4DoF optimization.
+
+This perspective leads to a decoupled estimation strategy in which rotation and scale are recovered separately from translation. Experiments confirm that, at low-to-mid occlusion densities, the Fourier formulation retains the behavior of the spatial formulation in the translation regime while improving convergence, and that decoupling resolves the failure of joint optimization in 4DoF settings. 
+
+Future work will extend the analysis to real through-foliage and other naturally occluded sequences to assess robustness beyond synthetic settings.
+
+\section*{Acknowledgements}
+This work received funding from the European Defence Fund under grant agreement EDF-2022-101121405-STORE.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% \clearpage
+\bibliographystyle{unsrtnat}
+\bibliography{ref}
+\end{document}

@@ -1,5 +1,5 @@
 ---
-title: "Audio denoising network"
+title: "Audio Denoising with a U-Net"
 layout: post
 date: 2024-12-17 16:38
 image: /assets/images/UNet.jpeg
@@ -10,7 +10,7 @@ tags:
 star: true  # This will add the "star" class to the item
 category: projects  # Ensure the category is set to 'projects'
 author: Ido Akov
-description: "Audio-denoising network"
+description: "A U-Net-based network for denoising audio recordings."
 projects: true  # This is necessary for the post to show up in the projects list
 --- 
 

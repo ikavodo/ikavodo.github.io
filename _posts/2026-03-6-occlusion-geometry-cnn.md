@@ -13,9 +13,11 @@ category: blog
 author: Ido Akov
 description: "A controlled Moving MNIST study of how occlusion geometry affects CNN accuracy, confidence, and calibration."
 ---
-The motivation for this post is the following simple question: 
+The motivation for this post is the following
 
-when a CNN fails under occlusion, is it mainly because **too much information is gone**, or because the missing information has the **wrong spatial structure**? In other words, are random pixel dropouts and smooth, contiguous occluders equally destructive if they remove the same number of pixels?
+This post is about that difference.
+
+I wanted to test a simple question: when a CNN fails under occlusion, is it mainly because **too much information is gone**, or because the missing information has the **wrong spatial structure**? In other words, are random pixel dropouts and smooth, contiguous occluders equally destructive if they remove the same number of pixels?
 
 To make the question clean, I used a deliberately small and canonical benchmark: **MNIST**, wrapped into a **Moving MNIST** setup. MNIST is tiny, fast, ubiquitous, and almost boring — which is exactly why it is useful here. If a pattern already appears on handwritten digits, then it is likely to reflect something real about the model rather than some unnecessary complexity in the dataset.
 

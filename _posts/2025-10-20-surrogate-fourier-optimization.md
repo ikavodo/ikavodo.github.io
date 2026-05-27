@@ -1,8 +1,17 @@
-
-## Image registration and Fourier-based methods
-Now I mentioned that the Fourier Transform would somehow come into this story, so I need to live up to my point. For that- let's take a look at a subproblem of ours, that is accounting for motion computation between only a single *pair* of images. In this case our parametric motion model boils down to a *single* geometric transformation between images is a problem which has already been accounted for in a myriad of different fieldings. This problem, which boils down to *aligning coordinate systems of different images* is called **image registration**, and comes into account in a vast array of fields, ranging from medical imagery to satellite views, underwater sonar signals, etc...  
-Up to approximately twenty years ago, many of the methods for image-registration had to do with Fourier-based methods, and more specifically a certain property of the Fourier transform known as the shift   
-
+---
+title: "Surrogate Fourier Optimization via Wirtinger Derivatives"
+layout: post
+date: 2025-10-20 17:00
+headerImage: false
+tags:
+- Computer Science
+- Math
+- Optimization
+star: true
+category: blog
+author: Ido Akov
+description: "Replacing a non-convex Fourier objective with a differentiable surrogate using Wirtinger calculus."
+---
 
 ## **Motivation**
 I’m currently working on expanding an optimization pipeline over **2D parametric motion (translation)** to **more general motion models** such as **Affine 6DoF**.

@@ -1,5 +1,5 @@
 ---
-title: "Moving from 4→6DoF motion computation via anisotropic scale refinement"
+title: "Beyond Similarity: Anisotropic Refinement for Affine Registration"
 layout: post
 date: 2026-03-03 18:00
 headerImage: false
@@ -7,7 +7,7 @@ tags: [Computer Science, Math, Optimization]
 star: true
 category: blog
 author: Ido Akov
-description: "Optimization"
+description: "Extending Fourier–Mellin registration toward 6-DoF affine alignment via a lightweight anisotropic scale refinement step."
 ---
 
 ## Introduction
@@ -235,6 +235,10 @@ Only a few outer iterations are required.
 # Part B — Experiment
 
 We evaluate the approach on **5,000 affNIST image pairs**, where ground-truth affine parameters are available.
+Example of such transformation pairs:
+![affNIST dataset](/assets/images/affnist_transforms.png)
+
+
 
 ## Quantitative summary
 

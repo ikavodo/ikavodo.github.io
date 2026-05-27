@@ -1,180 +1,173 @@
 ---
-title: "From Convolution to Modulation: Proving the sinc–Lowpass Duality"
+title: "The Fourier Transform, pt.2: Convolution and the Ideal Lowpass Filter"
 layout: post
 date: 2024-11-13 16:05
 image: /assets/images/fourier%20transf.png
 headerImage: true
 tags:
-  - Fourier Transform
-  - DSP
-  - Math
+- Fourier Transform
+- DSP
+- Math
 star: true
 category: blog
 author: Ido Akov
-description: "Using the modulation theorem and Hilbert transformer to show that the sinc function and the ideal lowpass filter are Fourier pairs."
+description: "Using the modulation theorem to prove results about the ideal lowpass filter and the sinc function."
 ---
 
 ## Introduction
-
-In [Part 1](https://ikavodo.github.io/fourier-transform-tutorial-pt-1/) we explored the duality of the DTFT and IDTFT through a simple problem. Now we turn to another facet of Fourier theory: the **convolution theorem** and its dual, the **modulation theorem**. While convolution is celebrated for enabling fast algorithms via the FFT, the modulation theorem often seems less glamorous – but it is equally powerful.  
-
-In this post, we’ll use the modulation theorem to prove a classic result: the unnormalized sinc function $\frac{\sin t}{t}$ and the ideal lowpass filter are Fourier transform pairs (up to a constant). Along the way we’ll meet the Hilbert transformer, an essential tool in signal processing and communications.
-
-**What you will learn**  
-- The definition of the ideal lowpass filter and why it’s called “brick‑wall”.  
-- The Hilbert transformer and its frequency response.  
-- How the modulation theorem elegantly derives the Fourier transform of $\operatorname{sinc}(t)$.  
-- Why the ideal lowpass filter cannot be implemented in practice – and what we do instead.
+The Fourier convolution theorem[^1] is an extremely important result from the computational perspective, as with a sufficiently fast algorithm ([FFT](https://en.wikipedia.org/wiki/Fast_Fourier_transform)) the order of computational complexity of a convolution operation drops from $O(n^2)$ to $O(n\log n$) (read [this](https://en.wikipedia.org/wiki/Big_O_notation) if you have no idea what I'm talking about). This means that implementing a convolution as a multiplication in the frequency domain is significantly faster than computing it in the time-domain (for sufficiently large $n>N$). On the other hand, the modulation theorem (which is the dual of the previously mentioned convolution theorem) defined as 
+<div>
+$$x[n]h[n]\overset{\text{FT}}{\leftrightarrow}\frac{1}{2\pi}\int_{-\pi}^{\pi}X(e^{j\theta})H(e^{j(w-\theta)} d\theta),$$
+</div>
+seems to be less appealing from a computational perspective, and is perhaps more domain-specific (ask the telecommunications people or [synthesizer geeks](https://www.youtube.com/watch?v=vvBl3YUBUyY)[^2] about it).
+This post aims to disprove this notion by showing that the modulation theorem can be used constructively to prove results in DSP, via an example involving an important theoretical tool: the ideal lowpass filter.
 
 ---
 
 ## Ideal Lowpass Filter
 
-An **ideal lowpass filter** passes all frequency components below a cutoff $\omega_c$ with gain 1 and completely blocks everything above $\omega_c$. Its frequency response is a rectangle:
+An **ideal lowpass filter** is a filter that perfectly passes all frequency components below a certain cutoff frequency $\omega_c$, while completely attenuating all frequencies above $\omega_c$. This type of filter has a **brick-wall frequency response**, meaning it has a sharp cutoff at the boundary between passband and stopband.
+
+### Frequency Response of the Ideal Lowpass Filter
+
+The frequency response of an ideal lowpass filter, $H_{LP}(j\omega)$, is defined as:
 
 <div>
 $$H_{LP}(j\omega) = \begin{cases} 
-1, & |\omega| \le \omega_c,\\
-0, & |\omega| > \omega_c.
+   1, & |\omega| \leq \omega_c \\
+   0, & |\omega| > \omega_c, 
 \end{cases}$$
 </div>
 
-This is a “brick‑wall” response – a sharp transition that is impossible to realize exactly with a finite impulse response, but conceptually invaluable.
+Where we suppose for now that the cutoff frequency is unity, meaning $\omega_c=1$. \\
+What does the time-domain representation of this filter look like? Could we use it to implement lowpass filtering by convolution in the time-domain? In order to answer these question we will make use of another important concept in DSP: the Hilbert transformer.
 
-For simplicity, we’ll take $\omega_c = 1$ (the results scale easily). Our goal is to find the inverse Fourier transform of $H_{LP}(j\omega)$, i.e., the impulse response $h_{LP}(t)$. That turns out to be the sinc function.
+## Hilbert transformer
 
----
+### Definition
 
-## The Hilbert Transformer
-
-The **Hilbert transformer** is an all‑pass filter that introduces a $-\frac{\pi}{2}$ phase shift. Its impulse response and frequency response are  
+The Hilbert transformer is defined via an impulse response $h_{HT}$ as:
 
 <div> 
-$$ h_{HT}(t) = \frac{1}{\pi t}, \qquad 
-H_{HT}(j\omega) = -j\,\operatorname{sgn}(\omega). $$
+$$ 
+h_{HT}(t) = \frac{1}{\pi t}, 
+$$ 
 </div>
 
-(Here $\operatorname{sgn}(\omega)$ is the sign function.)  
-The Hilbert transform is used to create **analytic signals**: for a real signal $x(t)$, the analytic signal $z(t) = x(t) + j\,\mathcal{H}\{x(t)\}$ has a Fourier transform that is zero for negative frequencies. This property is crucial in communications and also in our derivation.
+with a Fourier transform of
 
----
-
-## Proving the sinc–Lowpass Pair
-
-We want to show that  
-
-<div>
-$$\frac{\sin t}{\pi t} \quad\overset{\mathcal{F}}{\longleftrightarrow}\quad H_{LP}(j\omega),$$
+<div> 
+$$ 
+H_{HT}(j\omega)= -j\, \text{sign}(\omega),
+$$ 
 </div>
 
-with $\omega_c = 1$. (The factor $1/\pi$ will give exactly the brick‑wall response.)  
-Equivalently, we need the Fourier transform of $\frac{\sin t}{\pi t}$. Write it as a product:
+We can use the Hilbert transformer to generate an **analytic**, or complex representation $z[n]$, such that
 
-<div>
-$$\frac{\sin t}{\pi t} = \sin t \cdot \frac{1}{\pi t}.$$
+<div> 
+$$ 
+z(t) = x(t) + j*(x(t)\circledast h_{HT}(t)) 
+$$ 
 </div>
 
-The factor $\frac{1}{\pi t}$ is exactly $h_{HT}(t)$, the Hilbert transformer impulse response. So we can use the **modulation theorem**, which is the dual of convolution:
+where $\circledast$ is the convolution operator and j is the imaginary unit. The frequency domain representation of this signal retains the positive frequency components of x[n], while setting all negative frequency components to zero. This effectively halves the frequency bandwidth, enabling transmission over a narrower band.
+
+
+## Using the modulation theorem to find the Fourier transform of sinc(t)
+We will use the Hilbert transformer and the Fourier modulation theorem to find the frequency-domain representation of the unnormalized sinc function, defined by 
 
 <div>
-$$x(t) y(t) \overset{\mathcal{F}}{\longleftrightarrow} \frac{1}{2\pi} \int_{-\infty}^{\infty} X(j\theta) Y(j(\omega-\theta)) d\theta.$$
+$$
+sinc(t) = \frac{\sin{t}}{t}
+$$ 
+</div>.
+For this purpose we will multiply it by a scalar $\frac{1}{\pi}$ to obtain
+
+<div> 
+$$ 
+\frac{sinc(t)}{\pi} =\frac{\sin{t}}{\pi t}
+$$ 
 </div>
 
-In our case, $x(t)=\sin t$ and $y(t)=h_{HT}(t)$.
-
----
-
-### Step 1: Fourier transform of $\sin t$
-
-Using Euler’s formula $\sin t = \frac{e^{jt} - e^{-jt}}{2j}$,  
+Does the denominator of this function now look familiar? Let's first find the Fourier transform of the numerator in order to use the modulation theorem.
 
 <div>
-$$\mathcal{F}\{\sin t\} = \frac{1}{2j}\left( \mathcal{F}\{e^{jt}\} - \mathcal{F}\{e^{-jt}\} \right).$$
+$$
+\begin{aligned}
+F\{\sin{t}\}
+&= \int_{-\infty}^{\infty} \sin(t)\,e^{-j\omega t}\,dt
+= \frac{1}{2j}\int_{-\infty}^{\infty} (e^{jt}-e^{-jt})e^{-j\omega t}\,dt \\[4pt]
+&\overset{\text{lin.}}{=} \frac{1}{2j}\!\left(\int_{-\infty}^{\infty}e^{-j(\omega-1)t}\,dt - \int_{-\infty}^{\infty}e^{-j(\omega+1)t}\,dt\right) \\[4pt]
+&\overset{\text{time-shift}}{=} \frac{\pi(\delta(\omega-\omega_c) - \delta(\omega+\omega_c))}{j}
+\end{aligned}
+$$
 </div>
 
-Recall that $\mathcal{F}\{e^{j\omega_0 t}\} = 2\pi \delta(\omega - \omega_0)$. Hence  
+Where $\delta(t)$ is the [Dirac delta function](https://en.wikipedia.org/wiki/Dirac_delta_function). \\
+Now we can finally use the modulation theorem:
 
 <div>
-$$\mathcal{F}\{\sin t\} = \frac{1}{2j}\left( 2\pi\delta(\omega-1) - 2\pi\delta(\omega+1) \right) = \frac{\pi}{j}\big( \delta(\omega-1) - \delta(\omega+1) \big).$$
+$$
+\begin{aligned}
+\frac{\sin{t}}{\pi t} &= \sin{t} \cdot \frac{1}{\pi t}
+\overset{F}{\leftrightarrow} \frac{\pi}{2\pi j}\int_{-\pi}^{\pi} \bigl(\delta(\theta-\omega_c) - \delta(\theta+\omega_c)\bigr)H_{HT}(j(\omega-\theta))\,d\theta \\[4pt]
+&= \frac{1}{2j}\bigl(H_{HT}(j(\omega-\omega_c))-H_{HT}(j(\omega+\omega_c))\bigr)
+\end{aligned}
+$$
 </div>
 
-### Step 2: Apply the modulation theorem
-
-Let $X(j\omega) = \mathcal{F}\{\sin t\}$ and $Y(j\omega) = H_{HT}(j\omega) = -j\,\operatorname{sgn}(\omega)$. Then  
-
+Let's divide into the cases 
 <div>
-$$\mathcal{F}\left\{\frac{\sin t}{\pi t}\right\} = \frac{1}{2\pi} \int_{-\infty}^{\infty} X(j\theta) Y(j(\omega-\theta)) d\theta.$$
-</div>
-
-Substitute $X(j\theta)$:
-
-<div>
-$$= \frac{1}{2\pi} \int_{-\infty}^{\infty} \frac{\pi}{j}\big( \delta(\theta-1) - \delta(\theta+1) \big) Y(j(\omega-\theta)) d\theta.$$
-</div>
-
-The delta functions pick out two values of $\theta$:
-
-<div>
-$$= \frac{1}{2j} \left( Y(j(\omega-1)) - Y(j(\omega+1)) \right).$$
-</div>
-
-Now insert $Y(j\Omega) = -j\,\operatorname{sgn}(\Omega)$:
-
-<div>
-$$\mathcal{F}\left\{\frac{\sin t}{\pi t}\right\} = \frac{1}{2j} \left( -j\,\operatorname{sgn}(\omega-1) + j\,\operatorname{sgn}(\omega+1) \right) = \frac{1}{2} \left( \operatorname{sgn}(\omega+1) - \operatorname{sgn}(\omega-1) \right).$$
-</div>
-
-### Step 3: Interpret the result
-
-The sign function $\operatorname{sgn}(x)$ is $-1$ for $x<0$, $+1$ for $x>0$. Evaluate the expression for different $\omega$:
-
-- When $|\omega| < 1$, we have $\omega+1 > 0$, $\omega-1 < 0$, so  
-  $\operatorname{sgn}(\omega+1)=1$, $\operatorname{sgn}(\omega-1)=-1$, and the difference is $1$.
-- When $|\omega| > 1$, the two signs are the same:  
-  for $\omega > 1$, both $\omega+1 > 0$ and $\omega-1 > 0$;  
-  for $\omega < -1$, both are negative.  
-  Hence the difference is $0$.
-
-Therefore  
-
-<div>
-$$\mathcal{F}\left\{\frac{\sin t}{\pi t}\right\} = 
+$$
 \begin{cases}
-1, & |\omega| \le 1,\\
-0, & |\omega| > 1,
-\end{cases}$$
+1, & |\omega| \leq \omega_c \\
+2, & |\omega| > \omega_c
+\end{cases}
+$$
 </div>
 
-which is exactly $H_{LP}(j\omega)$ with $\omega_c = 1$. **QED.**
+and respectively evaluate our intermediate result.
+In the first case we have
+<div>
+$$
+\begin{aligned}
+H_{HT}(j(\omega-\omega_c)) = j,\quad H_{HT}(j(\omega+\omega_c)) &= -j \\[4pt]
+\implies \frac{1}{2j}\bigl(H_{HT}(j(\omega-\omega_c))-H_{HT}(j(\omega+\omega_c))\bigr) &= \frac{2j}{2j} = 1
+\end{aligned}
+$$
+</div>
+
+Whereas in the second
+
+<div>
+$$
+\begin{aligned}
+H_{HT}(j(\omega-\omega_c)) = j,\quad H_{HT}(j(\omega+\omega_c)) &= j \\[4pt]
+\implies \frac{1}{2j}\bigl(H_{HT}(j(\omega-\omega_c))-H_{HT}(j(\omega+\omega_c))\bigr) &= \frac{0}{2j} = 0
+\end{aligned}
+$$
+</div>
+
+Then we can conclude 
+
+<div>
+$$
+\frac{1}{2j}\left(H_{HT}(j(\omega-\omega_c)) - H_{HT}(j(\omega+\omega_c))\right)
+=
+\begin{cases} 
+1, & |\omega| \leq \omega_c \\
+0, & |\omega| > \omega_c
+\end{cases}
+= H_{LP}
+$$
+</div>
+
+Meaning we have proven that the unnormalized sinc function and ideal low-pass filter constitute a Fourier transform pair (up to a scalar $\frac{1}{\pi}$).
+One of the consequences of this fact is that the we are unable to implement an ideal-lowpass filter in the time domain, as the sinc function extends infinitely in each direction. This means we must find finite (and hopefully causal) approximations of the ideal low-pass for effective lowpass filtering in the time domain...
+That's it for now!
 
 ---
+### Footnotes 
 
-## Why This Matters
-
-We have shown that the ideal lowpass filter’s impulse response is the sinc function $\frac{\sin t}{\pi t}$. This has profound practical consequences:
-
-- The sinc function extends infinitely in both directions, so an ideal lowpass filter is **non‑causal** and cannot be implemented in real‑time.
-- In practice we must use **finite approximations** (windowed sinc filters) that trade off sharp cutoff for realizability.
-- The derivation also illustrates the power of the modulation theorem: a seemingly difficult transform pair fell out naturally once we recognized the product structure and employed the Hilbert transformer.
-
----
-
-## Key Takeaways
-
-- The modulation theorem is the dual of convolution and is equally fundamental.  
-- The Hilbert transformer is a key building block, especially for creating analytic signals.  
-- The Fourier pair $\frac{\sin t}{\pi t} \leftrightarrow$ brick‑wall lowpass is a cornerstone of filter design.  
-<!-- - Understanding these relationships prepares you for advanced topics like multirate processing, filter banks, and wavelet transforms. -->
-
----
-<!-- 
-## What’s Next?
-
-In **Part 3** (coming soon), we’ll explore how these concepts appear in practical applications: sampling, aliasing, and the connection to the discrete Fourier transform. Stay tuned!
-
----
- -->
-<!-- ### Footnotes
-
-[^1]: See [Part 1](https://ikavodo.github.io/fourier-transform-tutorial-pt-1/) for the duality discussion.  
-[^2]: FM modulation underpins both radio and the famous Yamaha DX7 synthesizer – check out [80’s pop](https://www.youtube.com/watch?v=djV11Xbc914) for that unmistakable sound. -->
+[^1]: see [previous post](https://ikavodo.github.io/fourier-dtft-tutorial-pt1/)
+[^2]: FM-modulation actually lies behind radio technology and FM synthesis- a technique which led to the development of the best-selling Yamaha DX7 synthesizer. This synth is responsible for **Lots** of funky sounds you might recognize from [80's pop](https://www.youtube.com/watch?v=djV11Xbc914&list=PLsAmsnfaNA4-CevYq1hrcD_aIP5xWe9Xr).

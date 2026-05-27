@@ -6,3 +6,4 @@ Gemfile.lock
 vendor/
 _posts/2025-09-10-motion_model.md
 _posts/2025-10-20-surrogate_optimization.md
+.claude/
