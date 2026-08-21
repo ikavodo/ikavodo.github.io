@@ -13,9 +13,7 @@ category: blog
 author: Ido Akov
 description: "A controlled Moving MNIST study of how occlusion geometry affects CNN accuracy, confidence, and calibration."
 ---
-The motivation for this post is the following
-
-This post is about that difference.
+Losing half an image's pixels to scattered random noise and losing half its pixels to one big occluding patch both fit the same one-line description — "50% occluded" — but they are not the same thing to a CNN. This post is about that difference.
 
 I wanted to test a simple question: when a CNN fails under occlusion, is it mainly because **too much information is gone**, or because the missing information has the **wrong spatial structure**? In other words, are random pixel dropouts and smooth, contiguous occluders equally destructive if they remove the same number of pixels?
 
